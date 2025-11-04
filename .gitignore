@@ -1,0 +1,10 @@
+.vs/
+
+[Bb]in/
+[Oo]bj/
+
+*.csproj.user
+
+__pycache__/
+.venv/
+models/
