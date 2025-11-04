@@ -8,7 +8,7 @@ This project combines a Unity mod with a Python-based RL training pipeline to te
 
 **Components:**
 - **unity-mod/** - BepInEx mod that hooks into Silksong, captures game state, and executes agent actions
-- **python-api/** - FastAPI server that runs trained PPO models and provides action predictions
+- **python-api/** - FastAPI server that runs training for models and provides action predictions
 
 ## Architecture
 
