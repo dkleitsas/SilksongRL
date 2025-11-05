@@ -7,7 +7,7 @@ using HutongGames.PlayMaker.Actions;
 
 namespace SilksongRL
 {
-    [BepInPlugin("com.yourname.hktestmod", "HK Test Mod", "1.0.0")]
+    [BepInPlugin("com.jimmie.silksongrl", "SilksongRL", "1.0.0")]
     public class RLManager : BaseUnityPlugin
     {
         public static bool isTraining = true;
