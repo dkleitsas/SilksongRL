@@ -1,3 +1,5 @@
+# IMPORTANT: Debug Mod got completely nuked in the latest patch and is (currently) not functional. Either downpatch to the previous version or wait for it to be fixed, I guess?
+
 # SilksongRL
 
 Reinforcement learning system for training AI agents to play Hollow Knight: Silksong boss encounters.
