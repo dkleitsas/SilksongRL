@@ -1,5 +1,7 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace SilksongRL
 {
@@ -60,12 +62,12 @@ namespace SilksongRL
     }
 
 
-    // A Harmony patch to get the key pressed by the agent
-    // and inject it into the game
-    [HarmonyPatch(typeof(Input), "GetKey", typeof(KeyCode))]
-    public static class GetKeyPatch
+    // Harmony patch for the new Unity Input System
+    // Patches ButtonControl.isPressed to intercept key presses
+    [HarmonyPatch(typeof(ButtonControl), "get_isPressed")]
+    public static class ButtonControlPatch
     {
-        public static bool Prefix(KeyCode key, ref bool __result)
+        public static bool Prefix(ButtonControl __instance, ref bool __result)
         {
             if (!RLManager.isAgentControlEnabled)
                 return true;
@@ -74,43 +76,55 @@ namespace SilksongRL
             if (action == null)
                 return true;
 
-            switch (key)
+            // Get the key name from the control path
+            string keyName = __instance.name;
+
+            switch (keyName)
             {
-                case KeyCode.LeftArrow:
+                case "leftArrow":
                     __result = action.move == MoveDirection.Left;
                     return false;
-                case KeyCode.RightArrow:
+                case "rightArrow":
                     __result = action.move == MoveDirection.Right;
                     return false;
-                case KeyCode.UpArrow:
+                case "upArrow":
                     __result = action.look == LookDirection.Up;
                     return false;
-                case KeyCode.DownArrow:
+                case "downArrow":
                     __result = action.look == LookDirection.Down;
                     return false;
-                case KeyCode.Z:
+                case "z":
                     __result = action.jump;
                     return false;
-                case KeyCode.X:
+                case "x":
                     __result = action.attack;
                     return false;
+                case "f5":
+                    if (RLManager.simulateF5Press)
+                    {
+                        __result = true;
+                        return false;
+                    }
+                    break;
             }
 
             return true;
         }
     }
 
-    // F5 key down patch, for some reason this would not work with the GetKey patch
-    // I assume it has to do with how the Debug Mod handles resetting
-    [HarmonyPatch(typeof(Input), "GetKeyDown", typeof(KeyCode))]
-    public static class GetKeyDownPatch
+    // Patch for wasPressedThisFrame to handle key down events
+    [HarmonyPatch(typeof(ButtonControl), "get_wasPressedThisFrame")]
+    public static class ButtonControlWasPressedPatch
     {
-        public static bool Prefix(KeyCode key, ref bool __result)
+        public static bool Prefix(ButtonControl __instance, ref bool __result)
         {
             if (!RLManager.isAgentControlEnabled)
                 return true;
 
-            if (key == KeyCode.F5)
+            string keyName = __instance.name;
+
+            // Handle F5 key down for reset functionality
+            if (keyName == "f5")
             {
                 if (RLManager.simulateF5Press)
                 {

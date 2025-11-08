@@ -87,6 +87,9 @@
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>$(GameDir)\Hollow Knight Silksong_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>$(GameDir)\Hollow Knight Silksong_Data\Managed\Unity.InputSystem.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.JSONSerializeModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(GameDir)\Hollow Knight Silksong_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>

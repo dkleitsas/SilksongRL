@@ -1,5 +1,3 @@
-# IMPORTANT: DOES NOT WORK ON LATEST PATCH, THE WAY INPUT IS HANDLED WAS CHANGED ENTIRELY. WORKING ON FIX. 
-
 # SilksongRL
 
 Reinforcement learning system for training AI agents to play Hollow Knight: Silksong boss encounters.
