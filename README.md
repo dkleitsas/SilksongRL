@@ -1,4 +1,4 @@
-# IMPORTANT: Debug Mod got completely nuked in the latest patch and is (currently) not functional. Either downpatch to the previous version or wait for it to be fixed, I guess?
+# IMPORTANT: DOES NOT WORK ON LATEST PATCH, THE WAY INPUT IS HANDLED WAS CHANGED ENTIRELY. WORKING ON FIX. 
 
 # SilksongRL
 
@@ -25,7 +25,7 @@ The Unity mod communicates with the Python API via HTTP:
 ### Prerequisites
 
 - **Hollow Knight: Silksong** (game installation)
-- **BepInEx 5** in your Silksong directory (https://www.nexusmods.com/hollowknightsilksong/mods/26)
+- **BepInEx 5.4.x** in your Silksong directory (https://www.nexusmods.com/hollowknightsilksong/mods/26)
 - **Debug Mod** in your BepInEx plugins folder (https://www.nexusmods.com/hollowknightsilksong/mods/2)
 - **.NET Framework 4.7.2** 
 - **Build system that supports MSBuild projects** (e.g. Visual Studio)
