@@ -14,7 +14,7 @@ namespace SilksongRL
         {
             Training,        // Normal training mode
             HeroDead,        // Hero died, need to reset
-            BossDead,        // Boss died, episode complete
+            BossDead,        // Boss died, need to reset
             Resetting        // Currently in reset sequence
         }
 
@@ -59,7 +59,7 @@ namespace SilksongRL
                 else if (!bossAlive)
                 {
                     CurrentState = EpisodeState.BossDead;
-                    Debug.Log("[TrainingEpisodeManager] Boss died - episode complete");
+                    Debug.Log("[TrainingEpisodeManager] Boss died - transitioning to reset sequence");
                 }
             }
         }
@@ -72,14 +72,13 @@ namespace SilksongRL
             switch (CurrentState)
             {
                 case EpisodeState.HeroDead:
-                    return HandleHeroDeathReset(hero, boss);
+                    return HandleDeathReset(hero, boss, "Hero died");
+
+                case EpisodeState.BossDead:
+                    return HandleDeathReset(hero, boss, "Boss defeated");
 
                 case EpisodeState.Resetting:
                     return HandleResettingState(hero, boss, ref currentAction);
-
-                case EpisodeState.BossDead:
-                    Debug.Log("[TrainingEpisodeManager] Episode complete - Boss defeated!");
-                    return false;
 
                 default:
                     return false; // Normal training
@@ -107,14 +106,14 @@ namespace SilksongRL
             OnResetComplete?.Invoke();
         }
 
-        private bool HandleHeroDeathReset(HeroController hero, HealthManager boss)
+        private bool HandleDeathReset(HeroController hero, HealthManager boss, string reason)
         {
             if (!isInResetSequence)
             {
                 isInResetSequence = true;
                 hasTriggeredReset = false;
                 resetSequenceStartTime = Time.time;
-                Debug.Log("[TrainingEpisodeManager] Starting automatic reset sequence...");
+                Debug.Log($"[TrainingEpisodeManager] {reason} - starting automatic reset sequence...");
             }
             
             // Wait for delay, then press reset (F5) and transition to resetting state
