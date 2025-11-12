@@ -2,6 +2,8 @@ import os
 import numpy as np
 import torch
 from stable_baselines3 import PPO
+import matplotlib.pyplot as plt
+from typing import List
 
 
 
@@ -14,6 +16,10 @@ class CustomPPO(PPO):
         self.last_done = False
         self.times_trained = 0
         self.boss_name = boss_name
+        
+        # Episode tracking
+        self.episode_rewards: List[float] = []
+        self.current_episode_reward = 0.0
 
         # Initilalize logger or SB3 complains
         if not hasattr(self, '_logger') or self._logger is None:
@@ -30,12 +36,48 @@ class CustomPPO(PPO):
 
     def start_new_rollout(self):
         self.rollout_buffer.reset()
+    
+    def plot_rewards(self, save_dir: str):
+        """Generate and save a plot of episode rewards."""
+        if len(self.episode_rewards) == 0:
+            return
+        
+        plt.figure(figsize=(12, 6))
+        
+        episodes = list(range(1, len(self.episode_rewards) + 1))
+        
+        plt.plot(episodes, self.episode_rewards, alpha=0.3, label='Episode Reward', color='blue')
+        
+        if len(self.episode_rewards) >= 10:
+            window = min(100, len(self.episode_rewards) // 2)
+            moving_avg = np.convolve(self.episode_rewards, np.ones(window)/window, mode='valid')
+            ma_episodes = list(range(window, len(self.episode_rewards) + 1))
+            plt.plot(ma_episodes, moving_avg, label=f'{window}-Episode Moving Average', 
+                    color='red', linewidth=2)
+        
+        plt.xlabel('Episode')
+        plt.ylabel('Total Reward')
+        plt.title(f'Training Progress - {self.boss_name}')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        
+        plot_path = os.path.join(save_dir, 'training_rewards.png')
+        plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        recent_n = min(100, len(self.episode_rewards))
+        recent_rewards = self.episode_rewards[-recent_n:]
 
     def store_transition(self, obs, action, reward, next_obs, done):
 
         obs = np.array(obs, dtype=np.float32)
         action = np.array(action, dtype=np.int32)
         next_obs = np.array(next_obs, dtype=np.float32)
+        
+        self.current_episode_reward += reward
+        if done:
+            self.episode_rewards.append(self.current_episode_reward)
+            self.current_episode_reward = 0.0
         
         obs_t = torch.as_tensor(obs).float().unsqueeze(0).to(self.device)
         action_t = torch.as_tensor(action).unsqueeze(0).to(self.device)
@@ -81,5 +123,7 @@ class CustomPPO(PPO):
             os.makedirs(save_dir, exist_ok=True)
             save_path = f"{save_dir}/checkpoint"
             self.save(save_path)
-            print(f"[CustomPPO] Checkpoint saved to {save_path}.zip at iteration {self.times_trained}")
+            
+            # Generate reward plot
+            self.plot_rewards(save_dir)
 

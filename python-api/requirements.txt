@@ -5,3 +5,4 @@ gymnasium
 numpy
 torch
 pydantic
+matplotlib
