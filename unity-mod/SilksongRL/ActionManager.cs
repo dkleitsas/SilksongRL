@@ -112,7 +112,9 @@ namespace SilksongRL
         }
     }
 
-    // Patch for wasPressedThisFrame to handle key down events
+    /* Debug still uses old input system, so we use the patch below
+    keeping this just in case it gets an update later
+
     [HarmonyPatch(typeof(ButtonControl), "get_wasPressedThisFrame")]
     public static class ButtonControlWasPressedPatch
     {
@@ -133,6 +135,30 @@ namespace SilksongRL
                 }
             }
 
+            return true;
+        }
+    }
+    */
+
+    // Patch over the legacy input system because that's what the
+    // Debug Mod uses
+    [HarmonyPatch(typeof(Input), "GetKeyDown", typeof(KeyCode))]
+    public static class GetKeyDownPatch
+    {
+        public static bool Prefix(KeyCode key, ref bool __result)
+        {
+            if (!RLManager.isAgentControlEnabled)
+                return true;
+
+            if (key == KeyCode.F5)
+            {
+                if (RLManager.simulateF5Press)
+                {
+                    __result = true;
+                    return false;
+                }
+            }
+            
             return true;
         }
     }
