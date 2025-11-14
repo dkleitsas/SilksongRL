@@ -48,8 +48,11 @@ def initialize_model(obs_size: int, boss_name: str):
     checkpoint_path = f"models/{normalized_boss_name}/checkpoint.zip"
     if os.path.exists(checkpoint_path):
         print(f"[API] Loading checkpoint for {boss_name}: {checkpoint_path}")
-        model = CustomPPO.load(checkpoint_path, device="cpu")
-        model.boss_name = normalized_boss_name
+        model = CustomPPO.load(
+            checkpoint_path,
+            env = DummyEnv(obs_size),
+            device="cpu",
+        )
         print(f"[API] Loaded checkpoint for {boss_name} with observation size: {obs_size}")
     else:
         print(f"[API] No checkpoint found for {boss_name}, initializing fresh model")
@@ -101,7 +104,7 @@ def initialize(config: InitConfig):
     
     # Normalize boss name for path check
     normalized_boss_name = config.boss_name.replace(" ", "_").lower()
-    
+
     return {
         "initialized": True,
         "boss_name": config.boss_name,

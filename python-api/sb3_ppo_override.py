@@ -1,24 +1,29 @@
 import os
+import json
 import numpy as np
 import torch
 from stable_baselines3 import PPO
 import matplotlib.pyplot as plt
-from typing import List
+from typing import List, Any
+from stable_baselines3.common.save_util import load_from_zip_file
 
 
 
 
 class CustomPPO(PPO):
-
-    def __init__(self, *args, boss_name=None, **kwargs):
+    # Need to define times_trained, episodes_completed, episode_rewards, and save_freq here
+    # even though they could just be kept as defaut at 0 because otherwise we cannot load
+    # them into the model after loading from a checkpoint
+    def __init__(self, *args, boss_name=None, save_freq=50, times_trained=0, episodes_completed=0, episode_rewards=[], **kwargs):
         super().__init__(*args, **kwargs)
 
         self.last_done = False
-        self.times_trained = 0
+        self.times_trained = times_trained
         self.boss_name = boss_name
-        
-        # Episode tracking
-        self.episode_rewards: List[float] = []
+        self.save_freq = save_freq
+        self.episodes_completed = episodes_completed
+
+        self.episode_rewards: List[float] = episode_rewards
         self.current_episode_reward = 0.0
 
         # Initilalize logger or SB3 complains
@@ -30,30 +35,73 @@ class CustomPPO(PPO):
         if hasattr(self, 'rollout_buffer') and self.rollout_buffer is not None:
             self.rollout_buffer.reset()
     
+
     @property
     def logger(self):
         return self._logger
 
+    # Override load method to sneak in our own custom variables
+    # Frankly there maybe a better way to do this but I'm tired and 
+    # if I keep trying I might claw my eyes out
+    @classmethod
+    def load(cls, path, device="auto", boss_name=None, **kwargs):
+        data, params, pytorch_variables = load_from_zip_file(path, device=device)
+
+        boss_name = data.get("boss_name", None)
+        save_freq = data.get("save_freq", 50)
+        times_trained = data.get("times_trained", 0)
+        episodes_completed = data.get("episodes_completed", 0)
+        episode_rewards = data.get("episode_rewards", [])
+
+        model = cls(
+            policy=data["policy_class"],
+            env=None,
+            device=device,
+            boss_name=boss_name,
+            save_freq=save_freq,
+            times_trained=times_trained,
+            episodes_completed=episodes_completed,
+            episode_rewards=episode_rewards,
+            _init_setup_model=False
+        )
+
+        model.__dict__.update(data)
+        model.__dict__.update(kwargs)
+
+        model._setup_model()
+        model.set_parameters(params, exact_match=False)
+
+        return model
+
+
     def start_new_rollout(self):
         self.rollout_buffer.reset()
-    
+
+
+    def _boss_directory(self) -> str:
+        boss_dir = self.boss_name
+        return os.path.join("models", boss_dir)
+   
+
     def plot_rewards(self, save_dir: str):
         """Generate and save a plot of episode rewards."""
+
         if len(self.episode_rewards) == 0:
-            return
+            raise ValueError(f"No rewards to plot for {self.boss_name}")
         
         plt.figure(figsize=(12, 6))
-        
+
+        rewards = np.asarray(self.episode_rewards, dtype=np.float32)
         episodes = list(range(1, len(self.episode_rewards) + 1))
         
-        plt.plot(episodes, self.episode_rewards, alpha=0.3, label='Episode Reward', color='blue')
+        plt.plot(episodes, rewards, alpha=0.3, label='Episode Rewards', color='blue')
         
-        if len(self.episode_rewards) >= 10:
-            window = min(100, len(self.episode_rewards) // 2)
-            moving_avg = np.convolve(self.episode_rewards, np.ones(window)/window, mode='valid')
-            ma_episodes = list(range(window, len(self.episode_rewards) + 1))
-            plt.plot(ma_episodes, moving_avg, label=f'{window}-Episode Moving Average', 
-                    color='red', linewidth=2)
+        window = self.save_freq // 2
+        moving_avg = np.convolve(rewards, np.ones(window)/window, mode='valid')
+        ma_start = window
+        ma_episodes = list(range(ma_start, ma_start + len(moving_avg)))
+        plt.plot(ma_episodes, moving_avg, label=f'{window}-Episode Moving Average Rewards', 
+                color='red', linewidth=2)
         
         plt.xlabel('Episode')
         plt.ylabel('Total Reward')
@@ -64,20 +112,28 @@ class CustomPPO(PPO):
         plot_path = os.path.join(save_dir, 'training_rewards.png')
         plt.savefig(plot_path, dpi=150, bbox_inches='tight')
         plt.close()
-        
-        recent_n = min(100, len(self.episode_rewards))
-        recent_rewards = self.episode_rewards[-recent_n:]
+
 
     def store_transition(self, obs, action, reward, next_obs, done):
-
+        """Store a transition in the rollout buffer."""
         obs = np.array(obs, dtype=np.float32)
         action = np.array(action, dtype=np.int32)
         next_obs = np.array(next_obs, dtype=np.float32)
         
         self.current_episode_reward += reward
         if done:
+
+            self.episodes_completed += 1
             self.episode_rewards.append(self.current_episode_reward)
             self.current_episode_reward = 0.0
+            
+            if self.save_freq and self.episodes_completed % self.save_freq == 0:
+                save_dir = self._boss_directory()
+                os.makedirs(save_dir, exist_ok=True)
+                save_path = os.path.join(save_dir, "checkpoint")
+                self.save(save_path)
+                self.plot_rewards(save_dir)
+                print(f"Checkpoint saved after {self.episodes_completed} episodes")
         
         obs_t = torch.as_tensor(obs).float().unsqueeze(0).to(self.device)
         action_t = torch.as_tensor(action).unsqueeze(0).to(self.device)
@@ -103,7 +159,9 @@ class CustomPPO(PPO):
         if self.rollout_buffer.pos >= self.n_steps:
             self.finish_rollout_and_train(next_obs)
 
+
     def finish_rollout_and_train(self, next_obs):
+        """Finish a rollout and train the model."""
         with torch.no_grad():
             last_values = self.policy.predict_values(
                 torch.as_tensor(next_obs).float().unsqueeze(0).to(self.device)
@@ -115,15 +173,10 @@ class CustomPPO(PPO):
 
         self.train()
         self.rollout_buffer.reset()
-        
         self.times_trained += 1
+  
+        self.episodes_completed += 1
+        self.episode_rewards.append(self.current_episode_reward)
+        self.current_episode_reward = 0.0
         
-        if self.times_trained % 100 == 0:
-            save_dir = f"models/{self.boss_name}"
-            os.makedirs(save_dir, exist_ok=True)
-            save_path = f"{save_dir}/checkpoint"
-            self.save(save_path)
-            
-            # Generate reward plot
-            self.plot_rewards(save_dir)
 
