@@ -97,9 +97,7 @@ Boss fight triggers are different from boss to boss so you might need to check {
 
 ## TO DO
 
-- IMPORTANT: Set up metric tracking druing training to not have to rely on "eye test" to see improvement
-- Keep a log of "paused" training and if continuing from there restore metrics eps trained etc
-- Set up periodic testing rounds or at least a testing option/endpoint
+- Set up periodic testing rounds or at least a testing option/endpoint (unsure about this one)
 - Add dedicated README files to the python API and unity mod components for more detailed information
 - Set up custon reset system to remove dependency on Debug mod and for more flexibility
 - Set up custom battle trigger system to streamline training (not sure if possible)
