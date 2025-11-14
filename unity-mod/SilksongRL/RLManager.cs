@@ -27,6 +27,7 @@ namespace SilksongRL
         private float[] previousObservations;
         private Action previousAction;
         private bool hasPreviousStep = false;
+        private bool pendingDoneTransition = false; // Set when episode ends, cleared after storing final transition
 
         private bool isProcessingStep = false;
 
@@ -37,7 +38,7 @@ namespace SilksongRL
         private void Awake()
         {
             Logger.LogInfo("RL Test Mod loaded.");
-            var harmony = new Harmony("com.yourname.hktestmod");
+            var harmony = new Harmony("com.jimmie.silksongrl");
             harmony.PatchAll();
             
             APIConfig config = new APIConfig
@@ -121,7 +122,17 @@ namespace SilksongRL
             }
 
             // Update episode state (death detection, etc.)
+            var previousState = episodeManager.CurrentState;
             episodeManager.UpdateEpisodeState(Hero, Boss);
+            
+            // If we just transitioned to a death state, mark that we need to store a done transition
+            if (previousState == TrainingEpisodeManager.EpisodeState.Training && 
+                (episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.HeroDead || 
+                 episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.BossDead))
+            {
+                pendingDoneTransition = true;
+                Logger.LogInfo($"[RL] Episode ended - will store final transition with done=true");
+            }
 
             // Handle reset sequence if needed
             if (episodeManager.HandleResetSequence(Hero, Boss, ref currentAction))
@@ -167,11 +178,23 @@ namespace SilksongRL
                 if (hasPreviousStep && previousObservations != null)
                 {
                     float reward = currentEncounter.CalculateReward(previousObservations, currentObservations);
-                    bool done = episodeManager.IsEpisodeDone();
+                    bool done = pendingDoneTransition;
 
                     await apiClient.StoreTransitionAsync(previousObservations, previousAction, reward, currentObservations, done);
+                    
+                    // If this was a terminal transition, clear previous step data and don't get new action
+                    if (done)
+                    {
+                        Logger.LogInfo($"[RL] Stored final transition with done=true");
+                        previousObservations = null;
+                        previousAction = null;
+                        hasPreviousStep = false;
+                        pendingDoneTransition = false;
+                        return; // Don't get new action, we're in reset
+                    }
                 }
 
+                // Only get new action if we're in normal training (not handling a done transition)
                 Action action = await apiClient.GetActionAsync(currentObservations);
 
                 if (action != null)
@@ -196,10 +219,10 @@ namespace SilksongRL
 
         private void ResetRL()
         {
+            // Clear current action and processing flag
+            // Note: We DON'T clear previousObservations/previousAction/hasPreviousStep here
+            // because we need to store the final transition with done=true on the first step of the new episode
             currentAction = new Action();
-            previousObservations = null;
-            previousAction = null;
-            hasPreviousStep = false;
             isProcessingStep = false;
         }
 
