@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Tuple
 import numpy as np
 from gymnasium import spaces
 import uvicorn
@@ -18,16 +18,24 @@ current_boss: Optional[str] = None
 
 # Dummy env to keep SB3 happy
 class DummyEnv(gym.Env):
-    def __init__(self, obs_size: int):
+    def __init__(self, obs_size: int) -> None:
         super().__init__()
         self.obs_size = obs_size
         self.observation_space = spaces.Box(0.0, 1.0, shape=(obs_size,), dtype=np.float32)
         self.action_space = spaces.MultiDiscrete([3, 3, 2, 2])
 
-    def reset(self, *, seed=None, options=None):
+    def reset(
+        self,
+        *,
+        seed: Optional[int] = None,
+        options: Optional[Dict[str, Any]] = None
+    ) -> Tuple[np.ndarray, Dict[str, Any]]:
         return np.zeros(self.obs_size, dtype=np.float32), {}
 
-    def step(self, action):
+    def step(
+        self,
+        action: np.ndarray
+    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         obs = np.zeros(self.obs_size, dtype=np.float32)
         reward = 0.0
         done = True
@@ -35,7 +43,7 @@ class DummyEnv(gym.Env):
         return obs, reward, done, False, info
 
 
-def initialize_model(obs_size: int, boss_name: str):
+def initialize_model(obs_size: int, boss_name: str) -> CustomPPO:
     """Initialize the PPO model with the given observation size and boss name."""
     global model, obs_dim, current_boss
     
@@ -95,7 +103,7 @@ class InitConfig(BaseModel):
 
 
 @app.post("/initialize")
-def initialize(config: InitConfig):
+def initialize(config: InitConfig) -> Dict[str, Any]:
     """Initialize the model with boss-specific configuration."""
     global model, obs_dim, current_boss
     
@@ -114,7 +122,7 @@ def initialize(config: InitConfig):
 
 
 @app.post("/get_action")
-def get_action(gs: GameState):
+def get_action(gs: GameState) -> Dict[str, List[int]]:
     global model, obs_dim
     
     if model is None:
@@ -135,7 +143,7 @@ def get_action(gs: GameState):
 
 
 @app.post("/store_transition")
-def store_transition(sd: StepData):
+def store_transition(sd: StepData) -> Dict[str, bool]:
     global model, obs_dim
     
     if model is None:
@@ -155,7 +163,7 @@ def store_transition(sd: StepData):
 
 
 @app.get("/training_stats")
-def get_training_stats():
+def get_training_stats() -> Dict[str, Any]:
     """Get current training statistics"""
     return {
         "times_trained": model.times_trained if model and hasattr(model, 'times_trained') else 0,
@@ -165,7 +173,7 @@ def get_training_stats():
     }
 
 @app.get("/status")
-def get_status():
+def get_status() -> Dict[str, Any]:
     """Get API and model status"""
     return {
         "initialized": model is not None,

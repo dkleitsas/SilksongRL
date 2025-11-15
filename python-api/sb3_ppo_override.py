@@ -1,10 +1,9 @@
 import os
-import json
 import numpy as np
 import torch
 from stable_baselines3 import PPO
 import matplotlib.pyplot as plt
-from typing import List, Any
+from typing import List, Any, Optional
 from stable_baselines3.common.save_util import load_from_zip_file
 
 
@@ -14,7 +13,16 @@ class CustomPPO(PPO):
     # Need to define times_trained, episodes_completed, episode_rewards, and save_freq here
     # even though they could just be kept as defaut at 0 because otherwise we cannot load
     # them into the model after loading from a checkpoint
-    def __init__(self, *args, boss_name=None, save_freq=50, times_trained=0, episodes_completed=0, episode_rewards=[], **kwargs):
+    def __init__(
+        self,
+        *args: Any,
+        boss_name: Optional[str] = None,
+        save_freq: int = 50,
+        times_trained: int = 0,
+        episodes_completed: int = 0,
+        episode_rewards: List[float] = [],
+        **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.last_done = False
@@ -44,7 +52,13 @@ class CustomPPO(PPO):
     # Frankly there maybe a better way to do this but I'm tired and 
     # if I keep trying I might claw my eyes out
     @classmethod
-    def load(cls, path, device="auto", boss_name=None, **kwargs):
+    def load(
+        cls,
+        path: str,
+        device: str | torch.device = "auto",
+        boss_name: Optional[str] = None,
+        **kwargs: Any
+    ) -> "CustomPPO":
         data, params, pytorch_variables = load_from_zip_file(path, device=device)
 
         boss_name = data.get("boss_name", None)
@@ -74,7 +88,7 @@ class CustomPPO(PPO):
         return model
 
 
-    def start_new_rollout(self):
+    def start_new_rollout(self) -> None:
         self.rollout_buffer.reset()
 
 
@@ -83,7 +97,7 @@ class CustomPPO(PPO):
         return os.path.join("models", boss_dir)
    
 
-    def plot_rewards(self, save_dir: str):
+    def plot_rewards(self, save_dir: str) -> None:
         """Generate and save a plot of episode rewards."""
 
         if len(self.episode_rewards) == 0:
@@ -114,7 +128,14 @@ class CustomPPO(PPO):
         plt.close()
 
 
-    def store_transition(self, obs, action, reward, next_obs, done):
+    def store_transition(
+        self,
+        obs: List[float],
+        action: List[int],
+        reward: float,
+        next_obs: List[float],
+        done: bool
+    ) -> None:
         """Store a transition in the rollout buffer."""
         obs = np.array(obs, dtype=np.float32)
         action = np.array(action, dtype=np.int32)
@@ -132,7 +153,7 @@ class CustomPPO(PPO):
                 os.makedirs(save_dir, exist_ok=True)
                 save_path = os.path.join(save_dir, "checkpoint")
                 self.save(save_path)
-                self.plot_rewards(save_dir)
+                # self.plot_rewards(save_dir)
                 print(f"Checkpoint saved after {self.episodes_completed} episodes")
         
         obs_t = torch.as_tensor(obs).float().unsqueeze(0).to(self.device)
@@ -160,7 +181,7 @@ class CustomPPO(PPO):
             self.finish_rollout_and_train(next_obs)
 
 
-    def finish_rollout_and_train(self, next_obs):
+    def finish_rollout_and_train(self, next_obs: List[float]) -> None:
         """Finish a rollout and train the model."""
         with torch.no_grad():
             last_values = self.policy.predict_values(
