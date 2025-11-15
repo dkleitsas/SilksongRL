@@ -28,6 +28,7 @@ namespace SilksongRL
         private Action previousAction;
         private bool hasPreviousStep = false;
         private bool pendingDoneTransition = false; // Set when episode ends, cleared after storing final transition
+        private int who_dead = -1; // 0: Hornet, 1: Boss (same use as above ^^^)
 
         private bool isProcessingStep = false;
 
@@ -131,6 +132,7 @@ namespace SilksongRL
                  episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.BossDead))
             {
                 pendingDoneTransition = true;
+                who_dead = (episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.HeroDead) ? 0 : 1;
                 Logger.LogInfo($"[RL] Episode ended - will store final transition with done=true");
             }
 
@@ -177,7 +179,7 @@ namespace SilksongRL
                 // Store transition from previous step (if it exists)
                 if (hasPreviousStep && previousObservations != null)
                 {
-                    float reward = currentEncounter.CalculateReward(previousObservations, currentObservations);
+                    float reward = currentEncounter.CalculateReward(previousObservations, currentObservations, who_dead);
                     bool done = pendingDoneTransition;
 
                     await apiClient.StoreTransitionAsync(previousObservations, previousAction, reward, currentObservations, done);
@@ -190,6 +192,7 @@ namespace SilksongRL
                         previousAction = null;
                         hasPreviousStep = false;
                         pendingDoneTransition = false;
+                        who_dead = -1;
                         return; // Don't get new action, we're in reset
                     }
                 }

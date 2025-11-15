@@ -63,7 +63,7 @@ namespace SilksongRL
         /// Calculates the reward for the current transition.
         /// Each encounter can define its own reward function.
         /// </summary>
-        float CalculateReward(float[] previousObservations, float[] currentObservations);
+        float CalculateReward(float[] previousObservations, float[] currentObservations, int who_dead);
     }
 }
 

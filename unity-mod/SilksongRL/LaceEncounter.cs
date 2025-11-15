@@ -150,12 +150,23 @@ namespace SilksongRL
             return heroAlive && bossAlive;
         }
 
-        public float CalculateReward(float[] previousObs, float[] currentObs)
+        public float CalculateReward(float[] previousObs, float[] currentObs, int who_dead)
         {
             if (previousObs == null || currentObs == null || 
                 previousObs.Length != 21 || currentObs.Length != 21)
             {
                 return 0f;
+            }
+
+            // 0. Terminal rewards
+            if (who_dead == 0)
+            {
+                return -150f;
+
+            }
+            else if (who_dead == 1)
+            {
+                return 500f;
             }
 
             float reward = 0;
@@ -213,16 +224,6 @@ namespace SilksongRL
             
             // 3. Survival reward
             reward += 0.01f;
-            
-            // 4. Terminal rewards
-            if (currHeroHP <= 0)
-            {
-                reward -= 100f;
-            }
-            if (currBossHP <= 0)
-            {
-                reward += 500f;
-            }
             
             return reward;
         }
