@@ -34,7 +34,7 @@ namespace SilksongRL
         {
             if (response.action == null || response.action.Length != 4)
             {
-                Debug.LogError("[ActionManager] Invalid action array received from API");
+                RLManager.StaticLogger?.LogError("[ActionManager] Invalid action array received from API");
                 return new Action();
             }
             
@@ -99,6 +99,7 @@ namespace SilksongRL
                 case "x":
                     __result = action.attack;
                     return false;
+                /*
                 case "f5":
                     if (RLManager.simulateF5Press)
                     {
@@ -106,6 +107,7 @@ namespace SilksongRL
                         return false;
                     }
                     break;
+                */
             }
 
             return true;
@@ -155,6 +157,7 @@ namespace SilksongRL
                 if (RLManager.simulateF5Press)
                 {
                     __result = true;
+                    RLManager.simulateF5Press = false;
                     return false;
                 }
             }

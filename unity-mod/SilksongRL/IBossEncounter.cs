@@ -33,16 +33,6 @@ namespace SilksongRL
         int GetObservationSize();
 
         /// <summary>
-        /// Checks if the hero is dead in this encounter.
-        /// </summary>
-        bool IsHeroDead(HeroController hero);
-
-        /// <summary>
-        /// Checks if the boss is dead in this encounter.
-        /// </summary>
-        bool IsBossDead(HealthManager boss);
-
-        /// <summary>
         /// Checks if the boss is in a dormant/inactive state.
         /// Used during reset sequences to determine when the fight can resume.
         /// </summary>

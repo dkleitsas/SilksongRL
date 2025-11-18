@@ -16,7 +16,7 @@ namespace SilksongRL
         private const float MAX_POS_Y = 25f;
         private const float MAX_HERO_VELOCITY = 30f;     // Hero velocity range ~-27 to 27
         private const float MAX_BOSS_VELOCITY = 70f;     // Boss velocity range ~-71 to 71
-        private const float MAX_HERO_HP = 5f;
+        private const float MAX_HERO_HP = 10f;
         private const float MAX_BOSS_HP = 250f;
         private const string BOSS_NAME = "Lace Boss1";
 
@@ -110,17 +110,6 @@ namespace SilksongRL
             return 21;
         }
 
-        public bool IsHeroDead(HeroController hero)
-        {
-            if (hero == null) return true;
-            return hero.playerData.health <= 0;
-        }
-
-        public bool IsBossDead(HealthManager boss)
-        {
-            return boss == null || boss.hp <= 0;
-        }
-
         public bool IsBossDormant(HealthManager boss)
         {
             if (boss == null) return true;
@@ -142,12 +131,20 @@ namespace SilksongRL
             return new Action { move = MoveDirection.Right };
         }
 
+        /*
         public bool IsResetComplete(HeroController hero, HealthManager boss)
         {
-            bool heroAlive = !IsHeroDead(hero);
-            bool bossAlive = boss != null && !IsBossDead(boss) && !IsBossDormant(boss);
+            // Reset is complete when both hero and boss are present and boss is active
+            bool heroAlive = (hero != null && hero.playerData.health > 0);
+            bool bossAlive = (boss != null && boss.hp > 0 && !IsBossDormant(boss));
             
             return heroAlive && bossAlive;
+        }
+        */
+        
+        public bool IsResetComplete(HeroController hero, HealthManager boss)
+        {
+            return hero != null && boss != null && !IsBossDormant(boss);
         }
 
         public float CalculateReward(float[] previousObs, float[] currentObs, int who_dead)
@@ -161,7 +158,7 @@ namespace SilksongRL
             // 0. Terminal rewards
             if (who_dead == 0)
             {
-                return -150f;
+                return -100f;
 
             }
             else if (who_dead == 1)
@@ -297,7 +294,7 @@ namespace SilksongRL
                 return AttackCategory.Stun;
             }
 
-            Debug.LogWarning($"[LaceEncounter] Unknown boss state: {stateName}, defaulting to Idle");
+            RLManager.StaticLogger?.LogWarning($"[LaceEncounter] Unknown boss state: {stateName}, defaulting to Idle");
             return AttackCategory.Idle;
         }
     }

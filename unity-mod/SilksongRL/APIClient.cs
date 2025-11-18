@@ -79,15 +79,15 @@ namespace SilksongRL
                 
                 if (response != null && response.initialized)
                 {
-                    Debug.Log($"[APIClient] Initialized for boss '{response.boss_name}' with observation size {response.observation_size}");
-                    Debug.Log($"[APIClient] Checkpoint loaded: {response.checkpoint_loaded}");
+                    RLManager.StaticLogger?.LogInfo($"[APIClient] Initialized for boss '{response.boss_name}' with observation size {response.observation_size}");
+                    RLManager.StaticLogger?.LogInfo($"[APIClient] Checkpoint loaded: {response.checkpoint_loaded}");
                 }
                 
                 return response;
             }
             catch (Exception e)
             {
-                Debug.LogError($"[APIClient] Initialize failed: {e.Message}");
+                RLManager.StaticLogger?.LogError($"[APIClient] Initialize failed: {e.Message}");
                 return null;
             }
         }
@@ -111,7 +111,7 @@ namespace SilksongRL
             }
             catch (Exception e)
             {
-                Debug.LogError($"[APIClient] GetAction failed: {e.Message}");
+                RLManager.StaticLogger?.LogError($"[APIClient] GetAction failed: {e.Message}");
                 return null;
             }
         }
@@ -136,7 +136,7 @@ namespace SilksongRL
             }
             catch (Exception e)
             {
-                Debug.LogError($"[APIClient] StoreTransition failed: {e.Message}");
+                RLManager.StaticLogger?.LogError($"[APIClient] StoreTransition failed: {e.Message}");
                 return false;
             }
         }
@@ -181,7 +181,7 @@ namespace SilksongRL
                         }
                         else
                         {
-                            Debug.LogWarning($"[APIClient] Request failed (attempt {attempt + 1}/{config.MaxRetries}): {request.error}");
+                            RLManager.StaticLogger?.LogWarning($"[APIClient] Request failed (attempt {attempt + 1}/{config.MaxRetries}): {request.error}");
                             
                             if (attempt < config.MaxRetries - 1)
                             {
@@ -192,7 +192,7 @@ namespace SilksongRL
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[APIClient] Request exception (attempt {attempt + 1}/{config.MaxRetries}): {e.Message}");
+                    RLManager.StaticLogger?.LogError($"[APIClient] Request exception (attempt {attempt + 1}/{config.MaxRetries}): {e.Message}");
                     
                     if (attempt < config.MaxRetries - 1)
                     {

@@ -17,6 +17,9 @@ namespace SilksongRL
         // Hero and Boss references (tracked via Harmony patches)
         public static HeroController Hero { get; private set; }
         public static HealthManager Boss { get; private set; }
+        
+        // Static logger reference for use in Harmony patches and other classes
+        public static BepInEx.Logging.ManualLogSource StaticLogger;
 
         private APIClient apiClient;
         private float stepInterval = 0.1f;
@@ -38,7 +41,8 @@ namespace SilksongRL
 
         private void Awake()
         {
-            Logger.LogInfo("RL Test Mod loaded.");
+            StaticLogger = Logger;
+            StaticLogger.LogInfo("SilksongRL Mod loaded.");
             var harmony = new Harmony("com.jimmie.silksongrl");
             harmony.PatchAll();
             
@@ -58,8 +62,8 @@ namespace SilksongRL
             episodeManager.OnSimulateKeyPress = SimulateKeyPress;
             episodeManager.OnResetComplete = ResetRL;
 
-            Logger.LogInfo($"[RL] Initialized with encounter: {currentEncounter.GetEncounterName()}");
-            Logger.LogInfo($"[RL] Observation size: {currentEncounter.GetObservationSize()}");
+            StaticLogger.LogInfo($"[RL] Initialized with encounter: {currentEncounter.GetEncounterName()}");
+            StaticLogger.LogInfo($"[RL] Observation size: {currentEncounter.GetObservationSize()}");
             
             _ = InitializeAPIAsync();
         }
@@ -71,22 +75,22 @@ namespace SilksongRL
                 string bossName = currentEncounter.GetEncounterName();
                 int obsSize = currentEncounter.GetObservationSize();
                 
-                Logger.LogInfo($"[RL] Initializing API for boss: {bossName} with observation size: {obsSize}");
+                StaticLogger.LogInfo($"[RL] Initializing API for boss: {bossName} with observation size: {obsSize}");
                 
                 var response = await apiClient.InitializeAsync(bossName, obsSize);
                 
                 if (response != null && response.initialized)
                 {
-                    Logger.LogInfo($"[RL] API initialized successfully. Checkpoint loaded: {response.checkpoint_loaded}");
+                    StaticLogger.LogInfo($"[RL] API initialized successfully. Checkpoint loaded: {response.checkpoint_loaded}");
                 }
                 else
                 {
-                    Logger.LogError("[RL] API initialization failed!");
+                    StaticLogger.LogError("[RL] API initialization failed!");
                 }
             }
             catch (Exception e)
             {
-                Logger.LogError($"[RL] Error initializing API: {e.Message}");
+                StaticLogger.LogError($"[RL] Error initializing API: {e.Message}");
             }
         }
 
@@ -97,19 +101,13 @@ namespace SilksongRL
             {
                 isAgentControlEnabled = !isAgentControlEnabled;
                 
-                Logger.LogInfo($"[RL] Agent control {(isAgentControlEnabled ? "enabled" : "disabled")}. Hero: {(Hero != null ? "Found" : "Not found")}, Boss: {(Boss != null ? "Found" : "Not found")}");
-            }
-
-            // Handle reset (F5) press timing
-            if (simulateF5Press && Time.time - f5PressTime > f5PressDuration)
-            {
-                simulateF5Press = false;
-                Logger.LogInfo("[RL] F5 press completed");
+                StaticLogger.LogInfo($"[RL] Agent control {(isAgentControlEnabled ? "enabled" : "disabled")}. Hero: {(Hero != null ? "Found" : "Not found")}, Boss: {(Boss != null ? "Found" : "Not found")}");
             }
         }
 
         private void FixedUpdate()
         {
+
             if (!isAgentControlEnabled)
             {
                 currentAction = new Action();
@@ -133,11 +131,11 @@ namespace SilksongRL
             {
                 pendingDoneTransition = true;
                 who_dead = (episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.HeroDead) ? 0 : 1;
-                Logger.LogInfo($"[RL] Episode ended - will store final transition with done=true");
+                StaticLogger.LogInfo($"[RL] Episode ended - will store final transition with done=true");
             }
 
             // Handle reset sequence if needed
-            if (episodeManager.HandleResetSequence(Hero, Boss, ref currentAction))
+            if (episodeManager.HandleResetSequence(Hero, Boss))
             {
                 return; // Skip normal step processing during reset
             }
@@ -160,19 +158,19 @@ namespace SilksongRL
             {
                 if (Hero == null)
                 {
-                    Logger.LogWarning("[RL] Hero is null - waiting for hero to spawn");
+                    StaticLogger.LogWarning("[RL] Hero is null - waiting for hero to spawn");
                     return;
                 }
                 if (Boss == null)
                 {
-                    Logger.LogWarning("[RL] Boss is null - waiting for boss to spawn");
+                    StaticLogger.LogWarning("[RL] Boss is null - waiting for boss to spawn");
                     return;
                 }
                 
                 float[] currentObservations = currentEncounter.ExtractObservationArray(Hero, Boss);
                 if (currentObservations == null)
                 {
-                    Logger.LogWarning("[RL] Observations are null despite Hero and Boss being set");
+                    StaticLogger.LogWarning("[RL] Observations are null despite Hero and Boss being set");
                     return;
                 }
 
@@ -187,7 +185,7 @@ namespace SilksongRL
                     // If this was a terminal transition, clear previous step data and don't get new action
                     if (done)
                     {
-                        Logger.LogInfo($"[RL] Stored final transition with done=true");
+                        StaticLogger.LogInfo($"[RL] Stored final transition with done=true");
                         previousObservations = null;
                         previousAction = null;
                         hasPreviousStep = false;
@@ -211,7 +209,7 @@ namespace SilksongRL
             }
             catch (Exception e)
             {
-                Logger.LogError($"[RL] Error in StepRL: {e.Message}");
+                StaticLogger.LogError($"[RL] Error in StepRL: {e.Message}");
             }
             finally
             {
@@ -231,16 +229,13 @@ namespace SilksongRL
 
         // Static flag for F5 simulation
         public static bool simulateF5Press = false;
-        private float f5PressTime = 0f;
-        private float f5PressDuration = 0.2f; // How long to simulate the press
 
         private void SimulateKeyPress(KeyCode key)
         {
             if (key == KeyCode.F5)
             {
                 simulateF5Press = true;
-                f5PressTime = Time.time;
-                Logger.LogInfo("[RL] Simulating F5 key press");
+                StaticLogger.LogInfo("[RL] Simulating F5 key press");
             }
         }
 
@@ -253,7 +248,7 @@ namespace SilksongRL
             static void Postfix(HeroController __instance)
             {
                 Hero = __instance;
-                Debug.Log("[RLManager] Hero found and assigned (Harmony patch)");
+                StaticLogger.LogInfo("[RL] Hero found and assigned (Harmony patch)");
             }
         }
 
@@ -269,7 +264,7 @@ namespace SilksongRL
                 if (currentEncounter != null && currentEncounter.IsEncounterMatch(__instance))
                 {
                     Boss = __instance;
-                    Debug.Log($"[RLManager] Boss locked: {__instance.name} (Harmony patch)");
+                    StaticLogger.LogInfo($"[RL] Boss locked: {__instance.name} (Harmony patch)");
                 }
             }
         }
