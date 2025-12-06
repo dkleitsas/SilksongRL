@@ -24,7 +24,7 @@ The Unity mod communicates with the Python API via HTTP:
 
 - **Hollow Knight: Silksong** (game installation)
 - **BepInEx 5.4.x** in your Silksong directory (https://www.nexusmods.com/hollowknightsilksong/mods/26)
-- **Debug Mod** in your BepInEx plugins folder (https://www.nexusmods.com/hollowknightsilksong/mods/2)
+- **Debug Mod** in your BepInEx plugins folder (https://github.com/hk-speedrunning/Silksong.DebugMod)
 - **.NET Framework 4.7.2** 
 - **Build system that supports MSBuild projects** (e.g. Visual Studio)
 - **Python 3.11**
@@ -93,10 +93,11 @@ The Unity mod communicates with the Python API via HTTP:
 5. Press P to hand over control to the agent.
 
 Note:
-Boss fight triggers are different from boss to boss so you might need to check {Boss}Encounter.cs to figure out how to actually begin the fight. For now you may need to manually begin the first episode and then hand over control. After that the training should continue on its own. This is a limitation of relying on the Debug mode for resetting. Removing this dependency entirely and setting up a custom reset system is in future plans.
+Boss fight triggers are different from boss to boss so you might need to check {Boss}Encounter.cs to figure out how to actually begin the fight. For now you may need to manually begin the first episode and then hand over control. After that the training should continue on its own. This is a limitation of relying on the Debug mode for resetting.
 
 ## TO DO
 
+- Replace API system with websockets(?)
 - Set up periodic testing rounds or at least a testing option/endpoint (unsure about this one)
 - Add dedicated README files to the python API and unity mod components for more detailed information
 - Set up custon reset system to remove dependency on Debug mod and for more flexibility
