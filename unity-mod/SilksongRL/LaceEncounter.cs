@@ -231,20 +231,19 @@ namespace SilksongRL
         private AttackCategory MapBossState(string stateName)
         {
             stateName = stateName?.Trim() ?? "";
-            
+
             if (string.IsNullOrEmpty(stateName))
             {
                 return AttackCategory.Idle;
             }
 
-            if (stateName.StartsWith("Idle") || stateName.StartsWith("Pose") || 
-                stateName.StartsWith("Hop") || stateName.StartsWith("Wallcling") || 
-                stateName.StartsWith("Refight"))
+            if (stateName.StartsWith("Idle") || stateName.StartsWith("Hop") ||
+                stateName.StartsWith("Wallcling") || stateName.StartsWith("Refight"))
             {
                 return AttackCategory.Idle;
             }
 
-            if (stateName.StartsWith("ComboSlash"))
+            if (stateName.StartsWith("ComboSlash") || stateName.StartsWith("Pose"))
             {
                 return AttackCategory.ComboSlash;
             }

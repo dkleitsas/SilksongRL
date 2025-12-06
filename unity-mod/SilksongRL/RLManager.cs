@@ -127,10 +127,12 @@ namespace SilksongRL
             // If we just transitioned to a death state, mark that we need to store a done transition
             if (previousState == TrainingEpisodeManager.EpisodeState.Training && 
                 (episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.HeroDead || 
-                 episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.BossDead))
+                 episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.BossDead ||
+                 episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.HeroStuck))
             {
                 pendingDoneTransition = true;
-                who_dead = (episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.HeroDead) ? 0 : 1;
+                // HeroDead or HeroStuck = hero died (0), BossDead = boss died (1)
+                who_dead = (episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.BossDead) ? 1 : 0;
                 StaticLogger.LogInfo($"[RL] Episode ended - will store final transition with done=true");
             }
 
