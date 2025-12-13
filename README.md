@@ -8,12 +8,12 @@ This project combines a Unity mod with a Python-based RL training pipeline to te
 
 **Components:**
 - **unity-mod/** - BepInEx mod that hooks into Silksong, captures game state, and executes agent actions
-- **python-api/** - FastAPI server that runs training for models and provides action predictions
+- **python-client/** - FastAPI server or Socket server that runs training for models and provides action predictions
 
 ## Architecture
 
-The Unity mod communicates with the Python API via HTTP:
-1. Game state (observations) is sent from Unity to the Python API
+The Unity mod communicates with the Python API or Socket server:
+1. Game state (observations) is sent from Unity to the Python Client
 2. The trained model predicts actions based on the current state
 3. Actions are executed in-game and rewards are calculated
 4. Training data is collected for model improvement
@@ -61,11 +61,11 @@ The Unity mod communicates with the Python API via HTTP:
 4. **Install the mod:**
    - Copy the built `SilksongRL.dll` from `unity-mod/SilksongRL/bin/Debug/` (or `bin/Release/` if you built in Release configuration) to your game's `BepInEx/plugins/` directory
 
-### Setting Up the Python API
+### Setting Up the Python Client
 
-1. **Navigate to the Python API directory:**
+1. **Navigate to the Python Client directory:**
    ```bash
-   cd python-api
+   cd python-client
    ```
 
 2. **Create a virtual environment (recommended):**
@@ -81,14 +81,14 @@ The Unity mod communicates with the Python API via HTTP:
 
 4. **Run the API server:**
    ```bash
-   python main.py
+   python launch.py
    ```
 
 ### Running the System
 
-1. Start the Python API server (as described above)
+1. Start the Python client server (as described above)
 2. Launch Hollow Knight: Silksong with BepInEx and the SilksongRL mod installed
-3. The mod will automatically connect to the Python API at `http://localhost:8000`
+3. The mod will automatically connect to the client at `http://localhost:8000`
 4. Navigate to a supported boss encounter in-game and set your save state in the arena through the Debug mod
 5. Press P to hand over control to the agent.
 
@@ -97,9 +97,8 @@ Boss fight triggers are different from boss to boss so you might need to check {
 
 ## TO DO
 
-- Replace API system with websockets(?)
-- Set up periodic testing rounds or at least a testing option/endpoint (unsure about this one)
-- Add dedicated README files to the python API and unity mod components for more detailed information
+
+- Add dedicated README files to the python client and unity mod components for more detailed information
 - Set up custon reset system to remove dependency on Debug mod and for more flexibility
 - Set up custom battle trigger system to streamline training (not sure if possible)
 - Add more boss encounters (Lace 2, Second Sentinel might be good ideas to consider)
