@@ -10,9 +10,12 @@ namespace SilksongRL
     [BepInPlugin("com.jimmie.silksongrl", "SilksongRL", "1.0.0")]
     public class RLManager : BaseUnityPlugin
     {
-        public static bool isTraining = true;
         public static string targetBossScene = "Lace_1";
         public static bool isAgentControlEnabled = false;
+        public static bool isInEval = false;
+
+        // Communication mode: true = Socket, false = HTTP API
+        public static bool useSocketClient = true;
 
         // Hero and Boss references (tracked via Harmony patches)
         public static HeroController Hero { get; private set; }
@@ -21,7 +24,7 @@ namespace SilksongRL
         // Static logger reference for use in Harmony patches and other classes
         public static BepInEx.Logging.ManualLogSource StaticLogger;
 
-        private APIClient apiClient;
+        private ICommClient client;
         private float stepInterval = 0.1f;
 
         private static IBossEncounter currentEncounter;
@@ -46,14 +49,31 @@ namespace SilksongRL
             var harmony = new Harmony("com.jimmie.silksongrl");
             harmony.PatchAll();
             
-            APIConfig config = new APIConfig
+            if (useSocketClient)
             {
-                BaseUrl = "http://localhost:8000",
-                Timeout = 10f,
-                MaxRetries = 3,
-                RetryDelay = 1f
-            };
-            apiClient = new APIClient(config);
+                SocketConfig socketConfig = new SocketConfig
+                {
+                    Host = "localhost",
+                    Port = 8000,
+                    Timeout = 10f,
+                    MaxReconnectAttempts = 5,
+                    ReconnectDelay = 1f
+                };
+                client = new SocketClient(socketConfig);
+                StaticLogger.LogInfo("[RL] Using Socket client");
+            }
+            else
+            {
+                APIConfig apiConfig = new APIConfig
+                {
+                    BaseUrl = "http://localhost:8000",
+                    Timeout = 10f,
+                    MaxRetries = 3,
+                    RetryDelay = 1f
+                };
+                client = new APIClient(apiConfig);
+                StaticLogger.LogInfo("[RL] Using HTTP API client");
+            }
 
             // Initialize encounter-specific components (This is still hardcoded, will change later)
             currentEncounter = new LaceEncounter();
@@ -65,32 +85,46 @@ namespace SilksongRL
             StaticLogger.LogInfo($"[RL] Initialized with encounter: {currentEncounter.GetEncounterName()}");
             StaticLogger.LogInfo($"[RL] Observation size: {currentEncounter.GetObservationSize()}");
             
-            _ = InitializeAPIAsync();
+            _ = InitializeClientAsync();
         }
 
-        private async Task InitializeAPIAsync()
+        private void OnDestroy()
+        {
+            client?.Disconnect();
+            StaticLogger.LogInfo("[RL] Client disconnected");
+        }
+
+        private async Task InitializeClientAsync()
         {
             try
             {
+                // Connect first (no-op for HTTP, establishes connection for sockets)
+                bool connected = await client.ConnectAsync();
+                if (!connected)
+                {
+                    StaticLogger.LogError("[RL] Failed to connect to server!");
+                    return;
+                }
+
                 string bossName = currentEncounter.GetEncounterName();
                 int obsSize = currentEncounter.GetObservationSize();
                 
-                StaticLogger.LogInfo($"[RL] Initializing API for boss: {bossName} with observation size: {obsSize}");
+                StaticLogger.LogInfo($"[RL] Initializing client for boss: {bossName} with observation size: {obsSize}");
                 
-                var response = await apiClient.InitializeAsync(bossName, obsSize);
+                var response = await client.InitializeAsync(bossName, obsSize);
                 
                 if (response != null && response.initialized)
                 {
-                    StaticLogger.LogInfo($"[RL] API initialized successfully. Checkpoint loaded: {response.checkpoint_loaded}");
+                    StaticLogger.LogInfo($"[RL] Client initialized successfully. Checkpoint loaded: {response.checkpoint_loaded}");
                 }
                 else
                 {
-                    StaticLogger.LogError("[RL] API initialization failed!");
+                    StaticLogger.LogError("[RL] Client initialization failed!");
                 }
             }
             catch (Exception e)
             {
-                StaticLogger.LogError($"[RL] Error initializing API: {e.Message}");
+                StaticLogger.LogError($"[RL] Error initializing client: {e.Message}");
             }
         }
 
@@ -170,19 +204,26 @@ namespace SilksongRL
                 }
                 
                 float[] currentObservations = currentEncounter.ExtractObservationArray(Hero, Boss);
-                if (currentObservations == null)
-                {
-                    StaticLogger.LogWarning("[RL] Observations are null despite Hero and Boss being set");
-                    return;
-                }
 
-                // Store transition from previous step (if it exists)
-                if (hasPreviousStep && previousObservations != null)
+                // Store transition from previous step (training mode only)
+                if (!isInEval && hasPreviousStep && previousObservations != null)
                 {
                     float reward = currentEncounter.CalculateReward(previousObservations, currentObservations, who_dead);
                     bool done = pendingDoneTransition;
 
-                    await apiClient.StoreTransitionAsync(previousObservations, previousAction, reward, currentObservations, done);
+                    if (useSocketClient)
+                    {
+                        // Run socket call off the main thread
+                        await Task.Run(async () =>
+                        {
+                            await client.StoreTransitionAsync(previousObservations, previousAction, reward, currentObservations, done).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // UnityWebRequest must stay on the main thread
+                        await client.StoreTransitionAsync(previousObservations, previousAction, reward, currentObservations, done);
+                    }
                     
                     // If this was a terminal transition, clear previous step data and don't get new action
                     if (done)
@@ -198,15 +239,32 @@ namespace SilksongRL
                 }
 
                 // Only get new action if we're in normal training (not handling a done transition)
-                Action action = await apiClient.GetActionAsync(currentObservations);
+                Action action;
+                if (useSocketClient)
+                {
+                    // Run socket call off the main thread
+                    action = await Task.Run(async () =>
+                    {
+                        return await client.GetActionAsync(currentObservations).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                }
+                else
+                {
+                    // UnityWebRequest must stay on the main thread
+                    action = await client.GetActionAsync(currentObservations);
+                }
 
                 if (action != null)
                 {
                     currentAction = action;
 
-                    previousObservations = currentObservations;
-                    previousAction = action;
-                    hasPreviousStep = true;
+                    // Only track previous state during training (needed for storing transitions)
+                    if (!isInEval)
+                    {
+                        previousObservations = currentObservations;
+                        previousAction = action;
+                        hasPreviousStep = true;
+                    }
                 }
             }
             catch (Exception e)

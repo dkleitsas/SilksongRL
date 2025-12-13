@@ -54,13 +54,28 @@ namespace SilksongRL
         public bool checkpoint_loaded;
     }
 
-    public class APIClient
+    public class APIClient : ICommClient
     {
         private APIConfig config;
+
+        // HTTP is stateless, so we're always "connected"
+        public bool IsConnected => true;
 
         public APIClient(APIConfig config = null)
         {
             this.config = config ?? new APIConfig();
+        }
+
+        // HTTP doesn't need explicit connection
+        public Task<bool> ConnectAsync()
+        {
+            return Task.FromResult(true);
+        }
+
+        // HTTP doesn't need explicit disconnection
+        public void Disconnect()
+        {
+            // No-op for HTTP
         }
 
         // Initialize the API with boss name and observation size
