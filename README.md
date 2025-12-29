@@ -97,7 +97,7 @@ Boss fight triggers are different from boss to boss so you might need to check {
 
 ## TO DO
 
-
+- Make loading encounter dynamic and loaded from conig file rather than hardcoded in RLManager 
 - Add dedicated README files to the python client and unity mod components for more detailed information
 - Set up custon reset system to remove dependency on Debug mod and for more flexibility
 - Set up custom battle trigger system to streamline training (not sure if possible)
