@@ -30,17 +30,15 @@ namespace SilksongRL
         // Horrnet was sometimes getting stuck below the ground
         // due to issues with the Debug mod resetting
         // Resetting straight into a fight can be finnicky
-        // Currently implementation is temporary and would
-        // need to somehow be moved to LaceEncounter.cs
-        // as it is an issue exclusive to Lace 1's arena
-        private const float STUCK_Y_THRESHOLD = 5f;
+        // The specific conditions of getting stuck should
+        // be defined in the individual encounter implementations
         private const int STUCK_STEP_THRESHOLD = 30;
         private int consecutiveStuckSteps = 0;
         
         private bool hasTriggeredReset = false;
         private bool hasPressedF5 = false;
         private float resetSequenceStartTime = 0f;
-        private float resetDelayDuration = 0.5f; // Delay before pressing F5 after death
+        private float resetDelayDuration = 0.5f; // Delay before pressing F5
 
         public System.Action<KeyCode> OnSimulateKeyPress;
         public System.Action OnResetComplete;
@@ -63,18 +61,18 @@ namespace SilksongRL
             int currentHeroHealth = hero.playerData.health;
             bool isBossPresent = (boss != null);
             float heroY = hero.transform.position.y;
+            float heroX = hero.transform.position.x;
 
             // Only detect death transitions when in training mode
             if (CurrentState == EpisodeState.Training)
             {
-                // Check if hero is stuck below safe Y threshold
-                if (heroY < STUCK_Y_THRESHOLD)
+                if (encounter.IsHeroStuck(heroY, heroX))
                 {
                     consecutiveStuckSteps++;
                     if (consecutiveStuckSteps >= STUCK_STEP_THRESHOLD)
                     {
                         CurrentState = EpisodeState.HeroStuck;
-                        RLManager.StaticLogger?.LogInfo($"[TrainingEpisodeManager] Hero stuck below Y={STUCK_Y_THRESHOLD:F1} for {consecutiveStuckSteps} steps - triggering reset");
+                        RLManager.StaticLogger?.LogInfo($"[TrainingEpisodeManager] Hero stuck for {consecutiveStuckSteps} steps - triggering reset");
                         consecutiveStuckSteps = 0; // Reset counter
                     }
                 }

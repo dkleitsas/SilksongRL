@@ -18,9 +18,8 @@ namespace SilksongRL
         private ConfigEntry<float> configStepInterval;
         private ConfigEntry<bool> configEvalMode;
 
-        public static string targetBossScene = "Lace_1";
         public static bool isAgentControlEnabled = false;
-        public static bool isInEval = false;
+        private bool isInEval;
 
         // Hero and Boss references (tracked via Harmony patches)
         public static HeroController Hero { get; private set; }
@@ -52,20 +51,18 @@ namespace SilksongRL
             StaticLogger = Logger;
             StaticLogger.LogInfo("SilksongRL Mod loaded.");
             
-            // Load configuration
             configHost = Config.Bind("Connection", "Host", "localhost", 
                 "Server hostname to connect to");
             configPort = Config.Bind("Connection", "Port", 8000, 
                 "Server port to connect to");
             configTargetBoss = Config.Bind("Training", "TargetBoss", "Lace_1",
-                "Target boss encounter (Lace_1)");
+                "Target boss encounter (e.g., Lace_1)");
             configStepInterval = Config.Bind("Training", "StepInterval", 0.1f,
                 "Time interval between RL steps in seconds");
             configEvalMode = Config.Bind("Training", "EvalMode", false,
                 "If true, runs in evaluation mode (no training, just inference)");
             
             stepInterval = configStepInterval.Value;
-            targetBossScene = configTargetBoss.Value;
             isInEval = configEvalMode.Value;
             
             var harmony = new Harmony("silksongrl");

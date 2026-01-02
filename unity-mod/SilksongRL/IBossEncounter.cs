@@ -40,7 +40,6 @@ namespace SilksongRL
 
         /// <summary>
         /// Returns the action the hero should take during reset to initiate the fight.
-        /// For example, Lace requires moving right to wake her up.
         /// </summary>
         Action GetResetAction(HeroController hero, HealthManager boss);
 
@@ -54,6 +53,13 @@ namespace SilksongRL
         /// Each encounter can define its own reward function.
         /// </summary>
         float CalculateReward(float[] previousObservations, float[] currentObservations, int who_dead);
+
+        /// <summary>
+        /// Checks if the hero is stuck.
+        /// Conditions are arena/boss specific.
+        /// Might not be required for all encounters.
+        /// </summary>
+        bool IsHeroStuck(float heroY, float heroX);
     }
 }
 

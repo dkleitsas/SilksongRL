@@ -18,6 +18,7 @@ namespace SilksongRL
         private const float MAX_BOSS_VELOCITY = 70f;     // Boss velocity range ~-71 to 71
         private const float MAX_HERO_HP = 10f;
         private const float MAX_BOSS_HP = 250f;
+        private const float STUCK_Y_THRESHOLD = 5f;
         private const string BOSS_NAME = "Lace Boss1";
 
         // Attack categories for Lace
@@ -125,6 +126,8 @@ namespace SilksongRL
             return false;
         }
 
+        // Not actually used, artifact form previous versions but keeping it
+        // so that interface is satisfied
         public Action GetResetAction(HeroController hero, HealthManager boss)
         {
             // Lace-specific: Hero must move right from spawn to trigger the fight
@@ -296,6 +299,12 @@ namespace SilksongRL
             RLManager.StaticLogger?.LogWarning($"[LaceEncounter] Unknown boss state: {stateName}, defaulting to Idle");
             return AttackCategory.Idle;
         }
+
+        public bool IsHeroStuck(float heroY, float heroX)
+        {
+            return heroY < STUCK_Y_THRESHOLD;
+        }
     }
+
 }
 
