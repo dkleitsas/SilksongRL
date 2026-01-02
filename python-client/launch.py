@@ -3,11 +3,9 @@ import json
 import os
 import sys
 
-import uvicorn
-
 DEFAULT_CONFIG = {
-    "transport": "socket_sync",  # "api", "socket_sync", "socket_async"
-    "host": "0.0.0.0",
+    "transport": "socket_sync",  # "socket_sync", "socket_async"
+    "host": "localhost",
     "port": 8000,
 }
 
@@ -27,28 +25,17 @@ def load_config(path: str = "server_config.json"):
     return merged
 
 
-def run_api(cfg):
-    host = cfg.get("host", "0.0.0.0")
-    port = int(cfg.get("port", 8000))
-    print(f"[Launcher] Starting FastAPI on {host}:{port}")
-    uvicorn.run("api:app", host=host, port=port, reload=True)
-
-
-def run_socket_sync(cfg):
+def run_socket_sync(host: str, port: int):
     from socket_server import RLSocketServer
 
-    host = cfg.get("host", "0.0.0.0")
-    port = int(cfg.get("port", 8000))
     print(f"[Launcher] Starting sync socket server on {host}:{port}")
     server = RLSocketServer(host=host, port=port)
     server.start()
 
 
-def run_socket_async(cfg):
+def run_socket_async(host: str, port: int):
     from socket_server_async import AsyncRLSocketServer
 
-    host = cfg.get("host", "0.0.0.0")
-    port = int(cfg.get("port", 8000))
     print(f"[Launcher] Starting async socket server on {host}:{port}")
     server = AsyncRLSocketServer(host=host, port=port)
     asyncio.run(server.start())
@@ -56,16 +43,16 @@ def run_socket_async(cfg):
 
 def main():
     cfg = load_config()
-    transport = cfg.get("transport", "api").lower()
+    transport = cfg.get("transport", "socket_sync").lower()
+    host = cfg.get("host", "localhost")
+    port = int(cfg.get("port", 8000))
 
-    if transport == "api":
-        run_api(cfg)
-    elif transport == "socket_sync":
-        run_socket_sync(cfg)
+    if transport == "socket_sync":
+        run_socket_sync(host, port)
     elif transport == "socket_async":
-        run_socket_async(cfg)
+        run_socket_async(host, port)
     else:
-        print(f"[Launcher] Unknown transport '{transport}'. Expected one of api|socket_sync|socket_async.")
+        print(f"[Launcher] Unknown transport '{transport}'. Expected one of socket_sync|socket_async.")
         sys.exit(1)
 
 

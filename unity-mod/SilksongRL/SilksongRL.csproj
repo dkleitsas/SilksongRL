@@ -108,9 +108,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActionManager.cs" />
-    <Compile Include="APIClient.cs" />
     <Compile Include="IBossEncounter.cs" />
-    <Compile Include="ICommClient.cs" />
     <Compile Include="LaceEncounter.cs" />
     <Compile Include="RLManager.cs" />
     <Compile Include="SocketClient.cs" />

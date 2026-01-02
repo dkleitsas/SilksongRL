@@ -8,11 +8,11 @@ This project combines a Unity mod with a Python-based RL training pipeline to te
 
 **Components:**
 - **unity-mod/** - BepInEx mod that hooks into Silksong, captures game state, and executes agent actions
-- **python-client/** - FastAPI server or Socket server that runs training for models and provides action predictions
+- **python-client/** - Socket server that runs training for models and provides action predictions
 
 ## Architecture
 
-The Unity mod communicates with the Python API or Socket server:
+The Unity mod communicates with the Python socket server:
 1. Game state (observations) is sent from Unity to the Python Client
 2. The trained model predicts actions based on the current state
 3. Actions are executed in-game and rewards are calculated
@@ -79,16 +79,16 @@ The Unity mod communicates with the Python API or Socket server:
    pip install -r requirements.txt
    ```
 
-4. **Run the API server:**
+4. **Run the socket server:**
    ```bash
    python launch.py
    ```
 
 ### Running the System
 
-1. Start the Python client server (as described above)
+1. Start the Python socket server (as described above)
 2. Launch Hollow Knight: Silksong with BepInEx and the SilksongRL mod installed
-3. The mod will automatically connect to the client at `http://localhost:8000`
+3. The mod will automatically connect to the server at `localhost:8000`
 4. Navigate to a supported boss encounter in-game and set your save state in the arena through the Debug mod
 5. Press P to hand over control to the agent.
 

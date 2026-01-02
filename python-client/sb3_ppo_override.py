@@ -49,7 +49,7 @@ class CustomPPO(PPO):
         return self._logger
 
     # Override load method to sneak in our own custom variables
-    # Frankly there maybe a better way to do this but I'm tired and 
+    # Frankly there may be a better way to do this but I'm tired and 
     # if I keep trying I might claw my eyes out
     @classmethod
     def load(

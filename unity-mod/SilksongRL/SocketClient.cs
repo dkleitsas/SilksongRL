@@ -17,6 +17,44 @@ namespace SilksongRL
         public float ReconnectDelay = 1f;
     }
 
+    [Serializable]
+    public class StateRequest
+    {
+        public float[] state;
+    }
+
+    [Serializable]
+    public class ActionResponse
+    {
+        public int[] action;
+    }
+
+    [Serializable]
+    public class TransitionRequest
+    {
+        public float[] state;
+        public int[] action;
+        public float reward;
+        public float[] next_state;
+        public bool done;
+    }
+
+    [Serializable]
+    public class InitRequest
+    {
+        public string boss_name;
+        public int observation_size;
+    }
+
+    [Serializable]
+    public class InitResponse
+    {
+        public bool initialized;
+        public string boss_name;
+        public int observation_size;
+        public bool checkpoint_loaded;
+    }
+
     // Message types for protocol
     public enum MessageType : byte
     {
@@ -29,7 +67,7 @@ namespace SilksongRL
         Error = 255
     }
 
-    public class SocketClient : ICommClient
+    public class SocketClient
     {
         private SocketConfig config;
         private TcpClient client;
@@ -111,7 +149,7 @@ namespace SilksongRL
 
         #endregion
 
-        #region Public API (matches APIClient interface)
+        #region Public API
 
         public async Task<InitResponse> InitializeAsync(string bossName, int observationSize)
         {

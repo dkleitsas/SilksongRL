@@ -1,4 +1,5 @@
 using BepInEx;
+using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
 using System;
@@ -7,15 +8,19 @@ using HutongGames.PlayMaker.Actions;
 
 namespace SilksongRL
 {
-    [BepInPlugin("com.jimmie.silksongrl", "SilksongRL", "1.0.0")]
+    [BepInPlugin("silksongrl", "SilksongRL", "1.0.0")]
     public class RLManager : BaseUnityPlugin
     {
+        // Config entries
+        private ConfigEntry<string> configHost;
+        private ConfigEntry<int> configPort;
+        private ConfigEntry<string> configTargetBoss;
+        private ConfigEntry<float> configStepInterval;
+        private ConfigEntry<bool> configEvalMode;
+
         public static string targetBossScene = "Lace_1";
         public static bool isAgentControlEnabled = false;
         public static bool isInEval = false;
-
-        // Communication mode: true = Socket, false = HTTP API
-        public static bool useSocketClient = true;
 
         // Hero and Boss references (tracked via Harmony patches)
         public static HeroController Hero { get; private set; }
@@ -24,8 +29,8 @@ namespace SilksongRL
         // Static logger reference for use in Harmony patches and other classes
         public static BepInEx.Logging.ManualLogSource StaticLogger;
 
-        private ICommClient client;
-        private float stepInterval = 0.1f;
+        private SocketClient client;
+        private float stepInterval;
 
         private static IBossEncounter currentEncounter;
         private TrainingEpisodeManager episodeManager;
@@ -46,46 +51,67 @@ namespace SilksongRL
         {
             StaticLogger = Logger;
             StaticLogger.LogInfo("SilksongRL Mod loaded.");
-            var harmony = new Harmony("com.jimmie.silksongrl");
+            
+            // Load configuration
+            configHost = Config.Bind("Connection", "Host", "localhost", 
+                "Server hostname to connect to");
+            configPort = Config.Bind("Connection", "Port", 8000, 
+                "Server port to connect to");
+            configTargetBoss = Config.Bind("Training", "TargetBoss", "Lace_1",
+                "Target boss encounter (Lace_1)");
+            configStepInterval = Config.Bind("Training", "StepInterval", 0.1f,
+                "Time interval between RL steps in seconds");
+            configEvalMode = Config.Bind("Training", "EvalMode", false,
+                "If true, runs in evaluation mode (no training, just inference)");
+            
+            stepInterval = configStepInterval.Value;
+            targetBossScene = configTargetBoss.Value;
+            isInEval = configEvalMode.Value;
+            
+            var harmony = new Harmony("silksongrl");
             harmony.PatchAll();
             
-            if (useSocketClient)
+            SocketConfig socketConfig = new SocketConfig
             {
-                SocketConfig socketConfig = new SocketConfig
-                {
-                    Host = "localhost",
-                    Port = 8000,
-                    Timeout = 10f,
-                    MaxReconnectAttempts = 5,
-                    ReconnectDelay = 1f
-                };
-                client = new SocketClient(socketConfig);
-                StaticLogger.LogInfo("[RL] Using Socket client");
-            }
-            else
-            {
-                APIConfig apiConfig = new APIConfig
-                {
-                    BaseUrl = "http://localhost:8000",
-                    Timeout = 10f,
-                    MaxRetries = 3,
-                    RetryDelay = 1f
-                };
-                client = new APIClient(apiConfig);
-                StaticLogger.LogInfo("[RL] Using HTTP API client");
-            }
+                Host = configHost.Value,
+                Port = configPort.Value,
+                Timeout = 10f,
+                MaxReconnectAttempts = 5,
+                ReconnectDelay = 1f
+            };
+            client = new SocketClient(socketConfig);
+            StaticLogger.LogInfo($"[RL] Connecting to {configHost.Value}:{configPort.Value}");
 
-            // Initialize encounter-specific components (This is still hardcoded, will change later)
-            currentEncounter = new LaceEncounter();
-            episodeManager = new TrainingEpisodeManager(currentEncounter);
+            // Initialize encounter based on config
+            currentEncounter = CreateEncounter(configTargetBoss.Value);
+            if (currentEncounter == null)
+            {
+                StaticLogger.LogError($"[RL] Unknown boss encounter: {configTargetBoss.Value}");
+                return;
+            }
             
+            episodeManager = new TrainingEpisodeManager(currentEncounter);
             episodeManager.OnSimulateKeyPress = SimulateKeyPress;
             episodeManager.OnResetComplete = ResetRL;
 
             StaticLogger.LogInfo($"[RL] Initialized with encounter: {currentEncounter.GetEncounterName()}");
             StaticLogger.LogInfo($"[RL] Observation size: {currentEncounter.GetObservationSize()}");
+            StaticLogger.LogInfo($"[RL] Mode: {(isInEval ? "Evaluation" : "Training")}");
             
             _ = InitializeClientAsync();
+        }
+
+        private IBossEncounter CreateEncounter(string bossName)
+        {
+            switch (bossName)
+            {
+                case "Lace_1":
+                    return new LaceEncounter();
+                // case "Lace_2":
+                //     return new Lace2Encounter();
+                default:
+                    return null;
+            }
         }
 
         private void OnDestroy()
@@ -211,19 +237,11 @@ namespace SilksongRL
                     float reward = currentEncounter.CalculateReward(previousObservations, currentObservations, who_dead);
                     bool done = pendingDoneTransition;
 
-                    if (useSocketClient)
+                    // Run socket call off the main thread
+                    await Task.Run(async () =>
                     {
-                        // Run socket call off the main thread
-                        await Task.Run(async () =>
-                        {
-                            await client.StoreTransitionAsync(previousObservations, previousAction, reward, currentObservations, done).ConfigureAwait(false);
-                        }).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        // UnityWebRequest must stay on the main thread
-                        await client.StoreTransitionAsync(previousObservations, previousAction, reward, currentObservations, done);
-                    }
+                        await client.StoreTransitionAsync(previousObservations, previousAction, reward, currentObservations, done).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                     
                     // If this was a terminal transition, clear previous step data and don't get new action
                     if (done)
@@ -238,21 +256,11 @@ namespace SilksongRL
                     }
                 }
 
-                // Only get new action if we're in normal training (not handling a done transition)
-                Action action;
-                if (useSocketClient)
+                // Get action from the RL agent
+                Action action = await Task.Run(async () =>
                 {
-                    // Run socket call off the main thread
-                    action = await Task.Run(async () =>
-                    {
-                        return await client.GetActionAsync(currentObservations).ConfigureAwait(false);
-                    }).ConfigureAwait(false);
-                }
-                else
-                {
-                    // UnityWebRequest must stay on the main thread
-                    action = await client.GetActionAsync(currentObservations);
-                }
+                    return await client.GetActionAsync(currentObservations).ConfigureAwait(false);
+                }).ConfigureAwait(false);
 
                 if (action != null)
                 {
