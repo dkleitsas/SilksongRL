@@ -32,6 +32,10 @@ namespace SilksongRL
         private float stepInterval;
 
         private static IBossEncounter currentEncounter;
+        
+        public static ActionSpaceType CurrentActionSpaceType => 
+            currentEncounter?.GetActionSpaceType() ?? ActionSpaceType.Basic;
+        
         private TrainingEpisodeManager episodeManager;
 
         private float[] previousObservations;
@@ -93,6 +97,7 @@ namespace SilksongRL
 
             StaticLogger.LogInfo($"[RL] Initialized with encounter: {currentEncounter.GetEncounterName()}");
             StaticLogger.LogInfo($"[RL] Observation size: {currentEncounter.GetObservationSize()}");
+            StaticLogger.LogInfo($"[RL] Action space: {CurrentActionSpaceType} ({ActionManager.GetActionSpaceShape(CurrentActionSpaceType).Length} actions)");
             StaticLogger.LogInfo($"[RL] Mode: {(isInEval ? "Evaluation" : "Training")}");
             
             _ = InitializeClientAsync();
@@ -131,10 +136,11 @@ namespace SilksongRL
 
                 string bossName = currentEncounter.GetEncounterName();
                 int obsSize = currentEncounter.GetObservationSize();
+                int[] actionSpaceShape = ActionManager.GetActionSpaceShape(CurrentActionSpaceType);
                 
                 StaticLogger.LogInfo($"[RL] Initializing client for boss: {bossName} with observation size: {obsSize}");
                 
-                var response = await client.InitializeAsync(bossName, obsSize);
+                var response = await client.InitializeAsync(bossName, obsSize, actionSpaceShape);
                 
                 if (response != null && response.initialized)
                 {

@@ -5,7 +5,7 @@ namespace SilksongRL
     /// <summary>
     /// Interface for boss encounter configurations.
     /// Each boss encounter implements this to define its specific behavior,
-    /// observation space, and reset mechanics.
+    /// observation space, action space, and reset mechanics.
     /// </summary>
     public interface IBossEncounter
     {
@@ -13,6 +13,12 @@ namespace SilksongRL
         /// Gets the human-readable name of this encounter.
         /// </summary>
         string GetEncounterName();
+
+        /// <summary>
+        /// Gets the action space type for this encounter.
+        /// Some bosses might require more actions to be beatable.
+        /// </summary>
+        ActionSpaceType GetActionSpaceType();
 
         /// <summary>
         /// Checks if the given HealthManager matches this encounter.

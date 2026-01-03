@@ -9,17 +9,18 @@ from sb3_ppo_override import CustomPPO
 
 model: Optional[CustomPPO] = None
 obs_dim: Optional[int] = None
+action_shape: Optional[List[int]] = None
 current_boss: Optional[str] = None
 
 
 class DummyEnv(gym.Env):
     """Minimal env to satisfy SB3; matches previous definitions."""
 
-    def __init__(self, obs_size: int) -> None:
+    def __init__(self, obs_size: int, action_space_shape: List[int] = None) -> None:
         super().__init__()
         self.obs_size = obs_size
         self.observation_space = spaces.Box(0.0, 1.0, shape=(obs_size,), dtype=np.float32)
-        self.action_space = spaces.MultiDiscrete([3, 3, 2, 2])
+        self.action_space = spaces.MultiDiscrete(action_space_shape)
 
     def reset(
         self,
@@ -41,21 +42,28 @@ def normalize_boss_name(boss_name: str) -> str:
     return boss_name.replace(" ", "_").lower()
 
 
-def initialize_model(obs_size: int, boss_name: str) -> Dict[str, Any]:
+def initialize_model(obs_size: int, boss_name: str, action_space_shape: List[int] = None) -> Dict[str, Any]:
     """Initialize or load model; returns metadata about the initialization."""
-    global model, obs_dim, current_boss
+    global model, obs_dim, action_shape, current_boss
 
     obs_dim = obs_size
     current_boss = boss_name
 
+    # Default to basic action space if not provided
+    if action_space_shape is None:
+        action_space_shape = [3, 3, 2, 2]
+    action_shape = action_space_shape
+
     normalized_boss_name = normalize_boss_name(boss_name)
     checkpoint_path = f"models/{normalized_boss_name}/checkpoint.zip"
+
+    print(f"[RLCore] Action space shape: {action_space_shape}")
 
     if os.path.exists(checkpoint_path):
         print(f"[RLCore] Loading checkpoint: {checkpoint_path}")
         model = CustomPPO.load(
             checkpoint_path,
-            env=DummyEnv(obs_size),
+            env=DummyEnv(obs_size, action_space_shape),
             device="cpu",
         )
         checkpoint_loaded = True
@@ -63,7 +71,7 @@ def initialize_model(obs_size: int, boss_name: str) -> Dict[str, Any]:
         print(f"[RLCore] No checkpoint found, initializing fresh model")
         model = CustomPPO(
             "MlpPolicy",
-            DummyEnv(obs_size),
+            DummyEnv(obs_size, action_space_shape),
             boss_name=normalized_boss_name,
             verbose=1,
             n_steps=4096,
@@ -103,6 +111,8 @@ def store_transition(state: List[float], action: List[int], reward: float, next_
         raise ValueError("Model not initialized")
     if len(state) != obs_dim or len(next_state) != obs_dim:
         raise ValueError("Observation size mismatch")
+    if len(action) != len(action_shape):
+        raise ValueError(f"Action size mismatch: expected {len(action_shape)}, got {len(action)}")
 
     model.store_transition(state, action, reward, next_state, done)
 
@@ -115,11 +125,13 @@ def training_stats() -> Dict[str, Any]:
         "initialized": model is not None,
     }
 
-
+# Had a status for the API so I added it here too, it's not particulary useful.
+# I no longer have the API. So. Yeah. This will probably go soon.
 def status() -> Dict[str, Any]:
     return {
         "initialized": model is not None,
         "observation_size": obs_dim,
+        "action_space_shape": action_shape,
         "current_boss": current_boss,
         "ready": model is not None and obs_dim is not None,
     }

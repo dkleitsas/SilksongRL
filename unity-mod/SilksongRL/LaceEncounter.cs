@@ -42,6 +42,11 @@ namespace SilksongRL
             return BOSS_NAME;
         }
 
+        public ActionSpaceType GetActionSpaceType()
+        {
+            return ActionSpaceType.Basic;
+        }
+
         public bool IsEncounterMatch(HealthManager hm)
         {
             return hm != null && hm.name == BOSS_NAME;

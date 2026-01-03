@@ -44,6 +44,7 @@ namespace SilksongRL
     {
         public string boss_name;
         public int observation_size;
+        public int[] action_space_shape;
     }
 
     [Serializable]
@@ -151,7 +152,7 @@ namespace SilksongRL
 
         #region Public API
 
-        public async Task<InitResponse> InitializeAsync(string bossName, int observationSize)
+        public async Task<InitResponse> InitializeAsync(string bossName, int observationSize, int[] actionSpaceShape)
         {
             try
             {
@@ -160,7 +161,8 @@ namespace SilksongRL
                 InitRequest request = new InitRequest
                 {
                     boss_name = bossName,
-                    observation_size = observationSize
+                    observation_size = observationSize,
+                    action_space_shape = actionSpaceShape
                 };
 
                 string json = JsonUtility.ToJson(request);
@@ -206,7 +208,7 @@ namespace SilksongRL
                 if (msgType == MessageType.ActionResponse)
                 {
                     ActionResponse response = JsonUtility.FromJson<ActionResponse>(responseJson);
-                    return ActionManager.ArrayToAction(response);
+                    return ActionManager.ArrayToAction(response, RLManager.CurrentActionSpaceType);
                 }
                 else if (msgType == MessageType.Error)
                 {
@@ -233,7 +235,7 @@ namespace SilksongRL
                 TransitionRequest request = new TransitionRequest
                 {
                     state = observations,
-                    action = ActionManager.ActionToArray(action),
+                    action = ActionManager.ActionToArray(action, RLManager.CurrentActionSpaceType),
                     reward = reward,
                     next_state = nextObservations,
                     done = done

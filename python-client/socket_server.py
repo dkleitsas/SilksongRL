@@ -117,9 +117,10 @@ class RLSocketServer:
     def handle_initialize(self, payload: Dict[str, Any]):
         boss_name = payload['boss_name']
         obs_size = payload['observation_size']
+        action_space_shape = payload.get('action_space_shape')
         
         print(f"[SocketServer] Initializing for boss: {boss_name} with observation size: {obs_size}")
-        init_response = initialize_model(obs_size, boss_name)
+        init_response = initialize_model(obs_size, boss_name, action_space_shape)
 
         response = {
             'initialized': init_response["initialized"],
