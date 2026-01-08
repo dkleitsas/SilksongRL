@@ -5,7 +5,6 @@ namespace SilksongRL
     /// <summary>
     /// Manages the lifecycle of training episodes including death detection,
     /// reset sequences, and state transitions.
-    /// This class is decoupled from specific boss implementations.
     /// </summary>
     public class TrainingEpisodeManager
     {
@@ -27,7 +26,7 @@ namespace SilksongRL
         private bool wasBossPresent = false;
         
         // Stuck detection
-        // Horrnet was sometimes getting stuck below the ground
+        // Hornet was sometimes getting stuck below the ground
         // due to issues with the Debug mod resetting
         // Resetting straight into a fight can be finnicky
         // The specific conditions of getting stuck should
@@ -73,18 +72,20 @@ namespace SilksongRL
                     {
                         CurrentState = EpisodeState.HeroStuck;
                         RLManager.StaticLogger?.LogInfo($"[TrainingEpisodeManager] Hero stuck for {consecutiveStuckSteps} steps - triggering reset");
-                        consecutiveStuckSteps = 0; // Reset counter
+                        consecutiveStuckSteps = 0;
                     }
                 }
                 else
                 {
-                    consecutiveStuckSteps = 0; // Reset counter when hero is in safe zone
+                    consecutiveStuckSteps = 0;
                 }
                 
                 // Detect death when boss becomes null
                 if (wasBossPresent && !isBossPresent)
                 {
                     // Check if hero health jumped from low to full (hero died and reset)
+                    // This is needed because hero or boss health does not go to 0, instead
+                    // they just disappear.
                     bool heroHealthJumped = (previousHeroHealth <= 3 && currentHeroHealth == 10);
                     
                     if (heroHealthJumped)
@@ -127,16 +128,6 @@ namespace SilksongRL
                 default:
                     return false; // Normal training
             }
-        }
-
-        /// <summary>
-        /// Checks if the episode is done (either death or victory).
-        /// </summary>
-        public bool IsEpisodeDone()
-        {
-            return CurrentState == EpisodeState.HeroDead || 
-                   CurrentState == EpisodeState.BossDead || 
-                   CurrentState == EpisodeState.HeroStuck;
         }
 
         /// <summary>

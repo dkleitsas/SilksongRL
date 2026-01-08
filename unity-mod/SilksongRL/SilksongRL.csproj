@@ -105,12 +105,23 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(GameDir)\Hollow Knight Silksong_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(GameDir)\Hollow Knight Silksong_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(GameDir)\Hollow Knight Silksong_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActionManager.cs" />
-    <Compile Include="IBossEncounter.cs" />
-    <Compile Include="LaceEncounter.cs" />
+    <Compile Include="Encounters\IBossEncounter.cs" />
+    <Compile Include="Encounters\LaceEncounter.cs" />
+    <Compile Include="Encounters\LaceSecondEncounter.cs" />
+    <Compile Include="Vision\ResolutionDiagnostics.cs" />
     <Compile Include="RLManager.cs" />
+    <Compile Include="Vision\ScreenCapture.cs" />
+    <Compile Include="Vision\ScreenCaptureTest.cs" />
+    <Compile Include="Vision\ScreenCaptureUpdater.cs" />
     <Compile Include="SocketClient.cs" />
     <Compile Include="TrainingEpisodeManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

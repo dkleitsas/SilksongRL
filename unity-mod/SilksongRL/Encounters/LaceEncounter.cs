@@ -37,6 +37,9 @@ namespace SilksongRL
             Multihit = 10,
         }
 
+        private const int NUM_ATTACK_CATEGORIES = 11;
+        private readonly int vectorObsSize = 10 + NUM_ATTACK_CATEGORIES;
+
         public string GetEncounterName()
         {
             return BOSS_NAME;
@@ -45,6 +48,21 @@ namespace SilksongRL
         public ActionSpaceType GetActionSpaceType()
         {
             return ActionSpaceType.Basic;
+        }
+
+        public ObservationType GetObservationType()
+        {
+            return ObservationType.Vector;
+        }
+
+        public int GetVectorObservationSize()
+        {
+            return vectorObsSize;
+        }
+
+        public (int width, int height) GetVisualObservationSize()
+        {
+            return (0, 0);
         }
 
         public bool IsEncounterMatch(HealthManager hm)
@@ -89,10 +107,9 @@ namespace SilksongRL
             float heroHP = Mathf.Clamp01(heroHealth / MAX_HERO_HP);
             float bossHP = Mathf.Clamp01(bossHealth / MAX_BOSS_HP);
             
-            // One-hot encode attack (11 categories: 0-10)
-            float[] attackOneHot = new float[11];
+            float[] attackOneHot = new float[NUM_ATTACK_CATEGORIES];
             int attackIdx = (int)attackCategory;
-            if (attackIdx >= 0 && attackIdx < 11)
+            if (attackIdx >= 0 && attackIdx < NUM_ATTACK_CATEGORIES)
             {
                 attackOneHot[attackIdx] = 1.0f;
             }
@@ -113,63 +130,24 @@ namespace SilksongRL
 
         public int GetObservationSize()
         {
-            return 21;
+            return vectorObsSize;
         }
 
-        public bool IsBossDormant(HealthManager boss)
-        {
-            if (boss == null) return true;
-            
-            foreach (var fsm in boss.GetComponents<PlayMakerFSM>())
-            {
-                string stateName = fsm.ActiveStateName;
-                if (!string.IsNullOrEmpty(stateName) && stateName.Contains("Dormant"))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Not actually used, artifact form previous versions but keeping it
-        // so that interface is satisfied
-        public Action GetResetAction(HeroController hero, HealthManager boss)
-        {
-            // Lace-specific: Hero must move right from spawn to trigger the fight
-            return new Action { move = MoveDirection.Right };
-        }
-
-        /*
-        public bool IsResetComplete(HeroController hero, HealthManager boss)
-        {
-            // Reset is complete when both hero and boss are present and boss is active
-            bool heroAlive = (hero != null && hero.playerData.health > 0);
-            bool bossAlive = (boss != null && boss.hp > 0 && !IsBossDormant(boss));
-            
-            return heroAlive && bossAlive;
-        }
-        */
-        
-        public bool IsResetComplete(HeroController hero, HealthManager boss)
-        {
-            return hero != null && boss != null && !IsBossDormant(boss);
-        }
-
-        public float CalculateReward(float[] previousObs, float[] currentObs, int who_dead)
+        public float CalculateReward(float[] previousObs, float[] currentObs, int whoDied)
         {
             if (previousObs == null || currentObs == null || 
-                previousObs.Length != 21 || currentObs.Length != 21)
+                previousObs.Length != vectorObsSize || currentObs.Length != vectorObsSize)
             {
                 return 0f;
             }
 
             // 0. Terminal rewards
-            if (who_dead == 0)
+            if (whoDied == 0)
             {
                 return -100f;
 
             }
-            else if (who_dead == 1)
+            else if (whoDied == 1)
             {
                 return 500f;
             }
@@ -182,14 +160,14 @@ namespace SilksongRL
             float prevBossHP = previousObs[9] * MAX_BOSS_HP;
             float currBossHP = currentObs[9] * MAX_BOSS_HP;
             
-            // 1. HP Change Rewards
+            // HP Change Rewards
             float bossHPLoss = prevBossHP - currBossHP;
             float heroHPLoss = prevHeroHP - currHeroHP;
             
             reward += bossHPLoss * 2.0f;
             reward -= heroHPLoss * 15.0f;
 
-            // 2. Distance and position-based shaping
+            // Distance and position-based shaping
             float prevHeroX = previousObs[0] * (MAX_POS_X - MIN_POS_X) + MIN_POS_X;
             float prevHeroY = previousObs[1] * (MAX_POS_Y - MIN_POS_Y) + MIN_POS_Y;
             float prevBossX = previousObs[5] * (MAX_POS_X - MIN_POS_X) + MIN_POS_X;
@@ -227,7 +205,7 @@ namespace SilksongRL
                 reward -= 0.05f;
             }
             
-            // 3. Survival reward
+            // Survival reward
             reward += 0.01f;
             
             return reward;
@@ -308,6 +286,11 @@ namespace SilksongRL
         public bool IsHeroStuck(float heroY, float heroX)
         {
             return heroY < STUCK_Y_THRESHOLD;
+        }
+
+        public ScreenCapture GetScreenCapture()
+        {
+            return null;
         }
     }
 

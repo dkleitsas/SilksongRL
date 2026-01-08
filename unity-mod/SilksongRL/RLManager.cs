@@ -42,7 +42,7 @@ namespace SilksongRL
         private Action previousAction;
         private bool hasPreviousStep = false;
         private bool pendingDoneTransition = false; // Set when episode ends, cleared after storing final transition
-        private int who_dead = -1; // 0: Hornet, 1: Boss (same use as above ^^^)
+        private int whoDied = -1; // 0: Hornet, 1: Boss (same use as above ^^^)
 
         private bool isProcessingStep = false;
 
@@ -100,6 +100,18 @@ namespace SilksongRL
             StaticLogger.LogInfo($"[RL] Action space: {CurrentActionSpaceType} ({ActionManager.GetActionSpaceShape(CurrentActionSpaceType).Length} actions)");
             StaticLogger.LogInfo($"[RL] Mode: {(isInEval ? "Evaluation" : "Training")}");
             
+            // Initialize screen capture updater for hybrid encounters
+            if (currentEncounter.GetObservationType() == ObservationType.Hybrid)
+            {
+                var screenCapture = currentEncounter.GetScreenCapture();
+                if (screenCapture != null)
+                {
+                    var updater = gameObject.AddComponent<ScreenCaptureUpdater>();
+                    updater.Initialize(screenCapture);
+                    StaticLogger.LogInfo("[RL] Screen capture updater initialized for hybrid observation");
+                }
+            }
+            
             _ = InitializeClientAsync();
         }
 
@@ -109,8 +121,8 @@ namespace SilksongRL
             {
                 case "Lace_1":
                     return new LaceEncounter();
-                // case "Lace_2":
-                //     return new Lace2Encounter();
+                case "Lace_2":
+                    return new LaceSecondEncounter();
                 default:
                     return null;
             }
@@ -137,10 +149,16 @@ namespace SilksongRL
                 string bossName = currentEncounter.GetEncounterName();
                 int obsSize = currentEncounter.GetObservationSize();
                 int[] actionSpaceShape = ActionManager.GetActionSpaceShape(CurrentActionSpaceType);
+                ObservationType obsType = currentEncounter.GetObservationType();
+                int vectorObsSize = currentEncounter.GetVectorObservationSize();
+                var (visualWidth, visualHeight) = currentEncounter.GetVisualObservationSize();
                 
-                StaticLogger.LogInfo($"[RL] Initializing client for boss: {bossName} with observation size: {obsSize}");
+                StaticLogger.LogInfo($"[RL] Initializing client for boss: {bossName}");
+                StaticLogger.LogInfo($"[RL]   Observation size: {obsSize}, type: {obsType}, vector size: {vectorObsSize}");
+                if (obsType == ObservationType.Hybrid)
+                    StaticLogger.LogInfo($"[RL]   Visual size: {visualWidth}x{visualHeight}");
                 
-                var response = await client.InitializeAsync(bossName, obsSize, actionSpaceShape);
+                var response = await client.InitializeAsync(bossName, obsSize, actionSpaceShape, obsType, vectorObsSize, visualWidth, visualHeight);
                 
                 if (response != null && response.initialized)
                 {
@@ -165,6 +183,13 @@ namespace SilksongRL
                 isAgentControlEnabled = !isAgentControlEnabled;
                 
                 StaticLogger.LogInfo($"[RL] Agent control {(isAgentControlEnabled ? "enabled" : "disabled")}. Hero: {(Hero != null ? "Found" : "Not found")}, Boss: {(Boss != null ? "Found" : "Not found")}");
+            }
+            
+            // Log resolution diagnostics when pressing L
+            if (Input.GetKeyDown(KeyCode.L))
+            {
+                ResolutionDiagnostics.LogResolutionInfo(StaticLogger);
+                ResolutionDiagnostics.CheckForPotentialIssues(StaticLogger);
             }
         }
 
@@ -195,7 +220,7 @@ namespace SilksongRL
             {
                 pendingDoneTransition = true;
                 // HeroDead or HeroStuck = hero died (0), BossDead = boss died (1)
-                who_dead = (episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.BossDead) ? 1 : 0;
+                whoDied = (episodeManager.CurrentState == TrainingEpisodeManager.EpisodeState.BossDead) ? 1 : 0;
                 StaticLogger.LogInfo($"[RL] Episode ended - will store final transition with done=true");
             }
 
@@ -237,7 +262,7 @@ namespace SilksongRL
                 // Store transition from previous step (training mode only)
                 if (!isInEval && hasPreviousStep && previousObservations != null)
                 {
-                    float reward = currentEncounter.CalculateReward(previousObservations, currentObservations, who_dead);
+                    float reward = currentEncounter.CalculateReward(previousObservations, currentObservations, whoDied);
                     bool done = pendingDoneTransition;
 
                     // Run socket call off the main thread
@@ -254,7 +279,7 @@ namespace SilksongRL
                         previousAction = null;
                         hasPreviousStep = false;
                         pendingDoneTransition = false;
-                        who_dead = -1;
+                        whoDied = -1;
                         return; // Don't get new action, we're in reset
                     }
                 }

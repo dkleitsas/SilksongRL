@@ -45,6 +45,10 @@ namespace SilksongRL
         public string boss_name;
         public int observation_size;
         public int[] action_space_shape;
+        public string observation_type;  // "vector" or "hybrid"
+        public int vector_obs_size;      // Size of vector portion (for hybrid, this is before visual data)
+        public int visual_width;         // Width of visual observation (0 if vector-only)
+        public int visual_height;        // Height of visual observation (0 if vector-only)
     }
 
     [Serializable]
@@ -81,8 +85,6 @@ namespace SilksongRL
         {
             this.config = config ?? new SocketConfig();
         }
-
-        #region Connection Management
 
         public async Task<bool> ConnectAsync()
         {
@@ -148,11 +150,7 @@ namespace SilksongRL
             }
         }
 
-        #endregion
-
-        #region Public API
-
-        public async Task<InitResponse> InitializeAsync(string bossName, int observationSize, int[] actionSpaceShape)
+        public async Task<InitResponse> InitializeAsync(string bossName, int observationSize, int[] actionSpaceShape, ObservationType observationType, int vectorObsSize, int visualWidth = 0, int visualHeight = 0)
         {
             try
             {
@@ -162,7 +160,11 @@ namespace SilksongRL
                 {
                     boss_name = bossName,
                     observation_size = observationSize,
-                    action_space_shape = actionSpaceShape
+                    action_space_shape = actionSpaceShape,
+                    observation_type = observationType == ObservationType.Hybrid ? "hybrid" : "vector",
+                    vector_obs_size = vectorObsSize,
+                    visual_width = visualWidth,
+                    visual_height = visualHeight
                 };
 
                 string json = JsonUtility.ToJson(request);
@@ -266,10 +268,6 @@ namespace SilksongRL
             }
         }
 
-        #endregion
-
-        #region Message Framing (Length-Prefixed Protocol)
-
         // Message format:
         // [4 bytes: length (big-endian)] [1 byte: message type] [N bytes: JSON payload]
 
@@ -290,13 +288,11 @@ namespace SilksongRL
             fullMessage[4] = (byte)msgType;
             Buffer.BlockCopy(payloadBytes, 0, fullMessage, 5, payloadBytes.Length);
 
-            // Single write for entire message
             await stream.WriteAsync(fullMessage, 0, fullMessage.Length).ConfigureAwait(false);
         }
 
         private async Task<(MessageType, string)> ReceiveMessageAsync()
         {
-            // Read length prefix (4 bytes)
             byte[] lengthBytes = await ReadExactAsync(4).ConfigureAwait(false);
             if (BitConverter.IsLittleEndian)
             {
@@ -304,16 +300,14 @@ namespace SilksongRL
             }
             int length = BitConverter.ToInt32(lengthBytes, 0);
 
-            if (length <= 0 || length > 1024 * 1024) // Sanity check: max 1MB
+            if (length <= 0 || length > 1024 * 1024)
             {
                 throw new InvalidDataException($"Invalid message length: {length}");
             }
 
-            // Read message type (1 byte)
             byte[] msgTypeBytes = await ReadExactAsync(1).ConfigureAwait(false);
             MessageType msgType = (MessageType)msgTypeBytes[0];
 
-            // Read payload
             int payloadLength = length - 1;
             string payload = "";
             
@@ -347,10 +341,6 @@ namespace SilksongRL
             return buffer;
         }
 
-        #endregion
-
-        #region Helper Methods
-
         private async Task<bool> EnsureConnectedAsync()
         {
             if (IsConnected) return true;
@@ -359,16 +349,9 @@ namespace SilksongRL
 
         private void HandleConnectionError()
         {
-            // Mark as disconnected so next call attempts reconnection
             isConnected = false;
         }
 
-        public void UpdateConfig(SocketConfig newConfig)
-        {
-            config = newConfig;
-        }
-
-        #endregion
     }
 }
 

@@ -4,7 +4,6 @@ import json
 import time
 from enum import IntEnum
 from typing import Optional, Dict, Any
-import numpy as np
 
 from rl_core import (
     initialize_model,
@@ -118,9 +117,25 @@ class RLSocketServer:
         boss_name = payload['boss_name']
         obs_size = payload['observation_size']
         action_space_shape = payload.get('action_space_shape')
+        observation_type = payload.get('observation_type', 'vector')
+        vector_obs_size = payload.get('vector_obs_size', obs_size)
+        visual_width = payload.get('visual_width', 0)
+        visual_height = payload.get('visual_height', 0)
         
-        print(f"[SocketServer] Initializing for boss: {boss_name} with observation size: {obs_size}")
-        init_response = initialize_model(obs_size, boss_name, action_space_shape)
+        print(f"[SocketServer] Initializing for boss: {boss_name}")
+        print(f"[SocketServer]   Observation size: {obs_size}, type: {observation_type}, vector size: {vector_obs_size}")
+        if observation_type == 'hybrid':
+            print(f"[SocketServer]   Visual size: {visual_width}x{visual_height}")
+        
+        init_response = initialize_model(
+            obs_size, 
+            boss_name, 
+            action_space_shape,
+            observation_type=observation_type,
+            vector_obs_size=vector_obs_size,
+            visual_w=visual_width,
+            visual_h=visual_height
+        )
 
         response = {
             'initialized': init_response["initialized"],

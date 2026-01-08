@@ -128,18 +128,32 @@ class CustomPPO(PPO):
         plt.close()
 
 
+    def _obs_to_tensor(self, obs: Any) -> torch.Tensor:
+        """Convert observation (flat array or dict) to tensor for policy."""
+        if isinstance(obs, dict):
+            # Dict observation - convert each part
+            return {k: torch.as_tensor(v).float().unsqueeze(0).to(self.device) for k, v in obs.items()}
+        else:
+            # Flat array observation
+            if not isinstance(obs, np.ndarray):
+                obs = np.array(obs, dtype=np.float32)
+            return torch.as_tensor(obs).float().unsqueeze(0).to(self.device)
+
     def store_transition(
         self,
-        obs: List[float],
+        obs: Any,  # Can be List[float] or Dict[str, np.ndarray]
         action: List[int],
         reward: float,
-        next_obs: List[float],
+        next_obs: Any,
         done: bool
     ) -> None:
         """Store a transition in the rollout buffer."""
-        obs = np.array(obs, dtype=np.float32)
+        # Convert to numpy if flat list
+        if isinstance(obs, list):
+            obs = np.array(obs, dtype=np.float32)
+        if isinstance(next_obs, list):
+            next_obs = np.array(next_obs, dtype=np.float32)
         action = np.array(action, dtype=np.int32)
-        next_obs = np.array(next_obs, dtype=np.float32)
         
         self.current_episode_reward += reward
         if done:
@@ -156,7 +170,7 @@ class CustomPPO(PPO):
                 # self.plot_rewards(save_dir)
                 print(f"Checkpoint saved after {self.episodes_completed} episodes")
         
-        obs_t = torch.as_tensor(obs).float().unsqueeze(0).to(self.device)
+        obs_t = self._obs_to_tensor(obs)
         action_t = torch.as_tensor(action).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
@@ -181,12 +195,11 @@ class CustomPPO(PPO):
             self.finish_rollout_and_train(next_obs)
 
 
-    def finish_rollout_and_train(self, next_obs: List[float]) -> None:
+    def finish_rollout_and_train(self, next_obs: Any) -> None:
         """Finish a rollout and train the model."""
         with torch.no_grad():
-            last_values = self.policy.predict_values(
-                torch.as_tensor(next_obs).float().unsqueeze(0).to(self.device)
-            )
+            next_obs_t = self._obs_to_tensor(next_obs)
+            last_values = self.policy.predict_values(next_obs_t)
 
         self.rollout_buffer.compute_returns_and_advantage(
             last_values=last_values, dones=np.array([False])
