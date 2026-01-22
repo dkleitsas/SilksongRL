@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectView>ShowAllFiles</ProjectView>
+    <!-- 
+      Set your game installation directory here.
+      Copy this file to SilksongRL.csproj.user and update the path below
+      by uncommenting the <GameDir> line and updating the path.
+
+      Some possible paths:
+      - Steam (Windows): C:\Program Files (x86)\Steam\steamapps\common\Hollow Knight Silksong
+      - Steam (custom drive): D:\Steam\steamapps\common\Hollow Knight Silksong
+      - GOG: C:\GOG Games\Hollow Knight Silksong
+      - Epic Games: C:\Program Files\Epic Games\Hollow Knight Silksong
+    -->
+
+    <!-- <GameDir>C:\Program Files (x86)\Steam\steamapps\common\Hollow Knight Silksong</GameDir> -->
+  </PropertyGroup>
+</Project>
+

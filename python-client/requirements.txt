@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+stable-baselines3
+gymnasium
+numpy
+torch
+pydantic
+matplotlib
