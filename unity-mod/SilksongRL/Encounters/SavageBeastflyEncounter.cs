@@ -215,6 +215,11 @@ namespace SilksongRL
             return ScreenCapture;
         }
 
+        public float GetMaxHP()
+        {
+            return MAX_BOSS_HP;
+        }
+
     }
 }
 

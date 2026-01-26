@@ -293,6 +293,11 @@ namespace SilksongRL
         {
             return null;
         }
+
+        public float GetMaxHP()
+        {
+            return MAX_BOSS_HP;
+        }
     }
 
 }

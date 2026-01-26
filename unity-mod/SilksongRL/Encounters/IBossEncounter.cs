@@ -90,6 +90,11 @@ namespace SilksongRL
         /// </summary>
         ScreenCapture GetScreenCapture();
 
+        /// <summary>
+        /// Gets the maximum HP of the boss.
+        /// </summary>
+        float GetMaxHP();
+
 
         // NOTE:
         // The following three methods are not currently used.
