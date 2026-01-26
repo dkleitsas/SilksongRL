@@ -35,16 +35,20 @@ The Unity mod communicates with the Python socket server:
 
 ## Set up Instructions
 
-### Prerequisites
+### Prerequisites to run training:
 
 - **Hollow Knight: Silksong** (game installation)
 - **BepInEx 5.4.x** in your Silksong directory (https://www.nexusmods.com/hollowknightsilksong/mods/26)
 - **Debug Mod** in your BepInEx plugins folder (https://github.com/hk-speedrunning/Silksong.DebugMod)
-- **.NET Framework 4.7.2** 
-- **Build system that supports MSBuild projects** (e.g. Visual Studio)
 - **Python 3.11**
 
-### Building the Unity Mod
+### (Optinoal) If you want to build the mod yourself as well you'll also need:
+
+- **.NET Framework 4.7.2** 
+- **Build system that supports MSBuild projects** (e.g. Visual Studio)
+
+
+### (Optional) Building the Unity Mod
 
 1. **Configure your game directory:**
    ```bash
@@ -73,8 +77,10 @@ The Unity mod communicates with the Python socket server:
    - Build Solution (Ctrl+Shift+B)
 
 
-4. **Install the mod:**
-   - Copy the built `SilksongRL.dll` from `unity-mod/SilksongRL/bin/Debug/` (or `bin/Release/` if you built in Release configuration) to your game's `BepInEx/plugins/` directory
+### Installing the mod
+
+   - Copy the built `SilksongRL.dll` and from `unity-mod/SilksongRL/bin/Debug/` (or `bin/Release/` if you built in Release configuration) to your game's `BepInEx/plugins/` directory (or the realease if you downloaded that instead)
+
 
 ### Setting Up the Python Client
 
@@ -104,9 +110,9 @@ The Unity mod communicates with the Python socket server:
 0. On first run, the mod will create a config file in `BepInEx/config` with default
 target boss Lace 1. Open the file and edit to the desired encounter.
 1. Start the Python socket server (as described above)
-2. Launch Hollow Knight: Silksong with BepInEx and the SilksongRL mod installed
-3. The mod will automatically connect to the server at `localhost:8000`
-4. Navigate to selected boss encounter in-game and set your save state in the arena through the Debug mod. Activate State on Death option.
+2. Launch Hollow Knight: Silksong
+3. The mod will automatically connect to the server
+4. Navigate to selected boss encounter in-game and set your save state in the arena through the Debug mod. Activate Load State on Death option.
 5. Press P to hand over control to the agent.
 
 Note:
