@@ -6,9 +6,12 @@ Reinforcement learning system for training AI agents to play Hollow Knight: Silk
 
 ### (✅= Defeated, 🔲= Pending)
 
+
 <br>
 
-✅ **Lace 1**
+✅ [**Lace 1**](https://www.youtube.com/watch?v=TSNdgidVWeY)
+
+<img width="1920" height="1080" alt="THUMBNAIL" src="https://github.com/user-attachments/assets/5babba46-4ce9-4d57-9888-58e99de16125" />
 
 🔲 **Lace 2**
 
