@@ -78,4 +78,19 @@ Press F2 to close the DebugMod UI (this is not important for Lace 1, but other e
 Unpause and press P! You should see your agent start to move on it's own. It's training now! Wish it luck, because it's certainly going to need it.
 
 
+## CHANGING ENCOUNTERS
+
+If you wish to try out another boss, head to your game installation, get inside `BepInEx/config`, open the silksongrl.cfg file
+and set TargetBoss to the one you want.
+
+<img width="1906" height="889" alt="image" src="https://github.com/user-attachments/assets/a458dafc-31d3-4614-8197-fab1c29a3c28" />
+
+
+### NOTES:
+
+- You can increase the timescale throught Debug mod and the training will function fine as the steps are executed in Unity's FixedUpdate.
+
+- If you want to load saved model weights, you will need to first run the game once with the desired boss selected to create the folder structure. Then, put checkpoint.zip into the `models/"boss_name"/` folder. It should now load the trained agent when you run it.
+
+- As this system runs in real time rather than assuming full control of the game, there will be slight deviations in the latency with which things run on different machines. This shouldn't cause too big of an issue. That being said, performance may degrade slightly if we try a model that is used to a certain amount of ms on an environment with less or more.
 
