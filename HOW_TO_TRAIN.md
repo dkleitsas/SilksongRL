@@ -1,4 +1,4 @@
-# HOW TO TRAIN (WIP)
+# HOW TO TRAIN
 
 Here I will give an overview of how to actually run the training. This assumes you have followed the set up instructions in the README.
 
