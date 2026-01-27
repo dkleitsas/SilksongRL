@@ -45,3 +45,37 @@ Unfortunately, you'll have to get to the boss you want to fight manually. Only t
 (In the future, I might look into providing ready SaveState information so you can open it straight up from there but if you're reading this it's not available yet)
 
 
+Once you have reached to the boss you need to get into a position that triggers the fight, pause and set your SaveState by pressing "Write", as shown below. I am using Lace 2 as an example here but this is the same for every boss.
+
+<img width="1611" height="905" alt="image" src="https://github.com/user-attachments/assets/e0ee151a-b4c6-4fb5-8499-7ebd5d27716c" />
+
+<br>
+<br>
+
+Congratulations, you now have a SaveState! These persist across runs, so any time you want to return to this encounter you can do it with just a few clicks.
+If you now press "Read", it sets the selected SaveStatestate into your Quickslot.
+
+<img width="1607" height="896" alt="image" src="https://github.com/user-attachments/assets/0ae8f443-b798-48b5-931f-26e1a2e53b67" />
+
+<br>
+<br>
+
+Enable the "Load Quickslot on Death" setting by pressing the highlighted button. 
+
+<img width="1608" height="907" alt="image" src="https://github.com/user-attachments/assets/bb6e86ae-151e-4c56-81b2-e0969ee6f587" />
+
+<br>
+<br>
+
+Bind Quickslot (Load) to F5. This is how we reset when the agent wins.
+
+<img width="1616" height="913" alt="image" src="https://github.com/user-attachments/assets/5dcba72d-99ef-48ac-a3b2-1c54bfc77185" />
+
+## AND... TRAIN!
+
+Press F2 to close the DebugMod UI (this is not important for Lace 1, but other encounters, such as Lace 2 use visual state information, so the the UI will mess with their performance)
+
+Unpause and press P! You should see your agent start to move on it's own. It's training now! Wish it luck, because it's certainly going to need it.
+
+
+
